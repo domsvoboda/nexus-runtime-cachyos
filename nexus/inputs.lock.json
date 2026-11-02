@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "status": "development",
+  "channel": "experimental",
+  "verifiedAuxiliaryManifestSha256": "e0f61063f256bdc3cfd3e4f2436709a2f35952d6f0cf189ced2cc874f5d53454",
+  "sdk": "registry.gitlab.steamos.cloud/proton/steamrt4/sdk/x86_64@sha256:6c1789cad862fd8ed9d46d71bbf8752bb7cb2336ab5e9680c0f0e3e7c88d77f1",
+  "sdkArm64": "registry.gitlab.steamos.cloud/proton/steamrt4/sdk/arm64-llvm@sha256:3a8199ffdd54c51f47e1b0d059e6fe583745214043f1f8c2e2e18377e72a3776",
+  "upstream": {
+    "proton": "7a94df49e4695fc101fd47d614166e69c43d9669",
+    "wine": "7fc704ef49c50e9702c9983a5250d5738697bb04",
+    "xgameruntime": "f03484d64867c1e65d421c1aba2f290c20bd7b4d"
+  },
+  "modules": {
+    "dxvk": "a78a467cadb22bee928904290cf8e7921b121851",
+    "vkd3d": "fed0c3418f815b0bc07533f6fc6f4aa06e8712c3",
+    "vkd3d-proton": "0bb64c56c8f0dcc11ecc0f6c56e00e4f7bd8d506"
+  },
+  "nghttp2": {
+    "url": "https://github.com/nghttp2/nghttp2.git",
+    "commit": "85e300c79fb6dbcfa9c1013215c8710c1c2cd3d2",
+    "version": "1.70.0"
+  },
+  "shader": {
+    "file": "patches/wine-hlsl-state-keywords.patch",
+    "sha256": "181e2708a9c95269bd89091c194d88dec5136d480be4ee9ef7c005f6abd91016",
+    "version": "2.1",
+    "expectedSources": {
+      "libs/vkd3d-shader/hlsl.l": "4bcde7ac8e4e43ea848483ca78dce9be0c2bf431398a912f53d339c6581791d5"
+    }
+  },
+  "requiresBackendVersion": "0.2.13",
+  "fex": {
+    "commit": "5285020de0b30dbdae7b44d0d83541af2d13d002",
+    "file": "patches/fex-overcommit-release-order.patch",
+    "sha256": "78fdcc43c148c9eb85aad8f80eb1e161d29169c93b4e5d8d529559268a479bdd",
+    "originalSha256": "93338457a4d2cc8701f697af97244f58d94ca614251add174ee98f8c4532d113",
+    "resultSha256": "beaeaa46ce47899138e463193b1808f956ba29f6c4f9f609235718c7c9562a80"
+  },
+  "requiresLauncherVersion": "0.4.1",
+  "compatibilitySources": {
+    "runtime-compat/wine-launcher.c": "44fe3ea8dd3c03af2c321c8e394bcc927633d4c5844aa7b59bfe87c72c10042f",
+    "runtime-compat/playfab-session.h": "a7bf5c391f58314439925e4095c31b6e93776609c0563a5df0198012799b80e3",
+    "runtime-compat/playfab-session.c": "b52994538c05e98e758d82dd7d69d29aca8093303e2c503c72f016158621f4ec",
+    "runtime-compat/playfab-save-folder.def": "a6f34058988f103cda4ae4f8774683a3ccbdf146fcc54af750b12335fc08cf8a",
+    "runtime-compat/playfab-save-folder.c": "fa63ceff1c77e2a1cdac5daae134ad46c29a20bf889208b5d73cfa808d53d56f",
+    "runtime-compat/gaming-services-version.c": "3410efcc5c862085684323034b41131ce1bc6d44c36fb013ecc4b9dc197dd128",
+    "runtime-compat/package-registration.c": "82246b89382c76fee31f0d5765c0129f1bcf41db66b425fc38a1a017553a12ca"
+  }
+}

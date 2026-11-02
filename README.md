@@ -1,3 +1,10 @@
+Nexus runtime
+-------------
+
+This fork is an independent, unofficial integration for Xodus Nexus, not an
+official Valve or Xodus distribution. See [Nexus build instructions](nexus/README.md)
+for the pinned three-fork build and Experimental limitations.
+
 Introduction
 ------------
 

@@ -1,0 +1,21 @@
+Nexus Runtime is an independent integration project, not an official Xodus or
+Valve distribution.
+
+Valve Proton and its pinned submodules retain their original copyrights and
+licenses. Wine and Xodus XGameRuntime are covered by their LGPL notices. DXVK,
+DXBC-SPIRV, VKD3D, nghttp2, FFmpeg and all other bundled components retain their
+own licenses. See their source directories and the distributed license files.
+
+Original Xodus integration patches are exported with author and commit metadata
+from xodus-gaming/wine and xodus-gaming/Proton. Context adaptations do not transfer
+their authorship. Exact original revisions are recorded in the source locks.
+
+Nexus compatibility patches, helpers and contract tests originate from
+domsvoboda/xodus-nexus, source revision a5827f935af7d6f894c1216e17392815b0b6598e.
+Original copyright headers, contributor attribution and upstream patch notices
+remain in those files. The additional integration and build recipe is maintained
+in domsvoboda/nexus-runtime.
+
+Binary redistribution must include the complete corresponding-source archive
+and the applicable licenses. No game binaries, Microsoft accounts, tokens,
+credentials, Wine prefixes or saved games are part of this repository.

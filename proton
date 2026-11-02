@@ -1654,6 +1654,15 @@ def default_compat_config():
                     "4920",
                 ]:
             ret.discard("gamedrive")
+            
+    if "STORE" in os.environ:
+        store = os.environ["STORE"]
+        if store in ["battlenet", "ea", "ubisoft"]:
+            ret.add("writecopy")
+
+    # hack to force gamedrive compat_config always for umu
+    if os.environ.get('UMU_ID', ''):
+        ret.add("gamedrive")
 
     # hack to force gamedrive compat_config always for umu
     if os.environ.get('UMU_ID', ''):
@@ -2489,7 +2498,9 @@ class Session:
                     f.write(json.dumps(app_config, indent=2))
                 self.env['FEX_APP_CONFIG'] = g_compatdata.fex_config_file
 
-            self.env["FEX_APP_CONFIG_LOCATION"] = os.path.join(g_proton.dist_dir, "share/fex-emu/")
+            if "FEX_APP_CONFIG_LOCATION" not in self.env:
+                self.env["FEX_APP_CONFIG_LOCATION"] = g_compatdata.path("fex-emu/")
+                makedirs(os.path.join(self.env["FEX_APP_CONFIG_LOCATION"], "AppConfig"))
 
     def run_proc(self, args, local_env=None):
         if local_env is None:
@@ -2544,6 +2555,7 @@ class Session:
                 argv = [g_proton.lib_dir + "/wine/x86_64-unix/wine-preloader", g_proton.lib_dir + "/wine/x86_64-unix/wine", "c:\\windows\\system32\\steam.exe"]
             else:
                 argv = [g_proton.wine_bin, "c:\\windows\\system32\\steam.exe"]
+
 
         rc = self.run_proc(adverb + argv + sys.argv[2:] + self.cmdlineappend)
 

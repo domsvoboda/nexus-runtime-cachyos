@@ -1,0 +1,32 @@
+name: Nexus Proton source checks
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'fix/**']
+  pull_request:
+    branches: [main, develop]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate workflow syntax and context availability
+        run: |
+          curl --fail --location --retry 2 --max-time 120 https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          printf '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  %s/actionlint.tar.gz\n' "$RUNNER_TEMP" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/nexus-source.yml .github/workflows/nexus-runtime.yml .github/workflows/nexus-runtime-arm64.yml
+      - name: Install bounded source-test tools
+        timeout-minutes: 12
+        run: |
+          sudo "$(command -v node)" nexus/ci/ubuntu-mirror.mjs
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 install -y --no-install-recommends python3 zstd cmake make rsync gcc g++ gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686
+      - run: node nexus/check-source.mjs
+      - run: node --test nexus/*.test.mjs nexus/tests/*.test.mjs nexus/ci/*.test.mjs nexus/runtime-compat/*.test.mjs
+      - run: git diff --check

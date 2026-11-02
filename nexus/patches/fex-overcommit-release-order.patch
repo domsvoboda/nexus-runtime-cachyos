@@ -1,0 +1,14 @@
+diff --git a/FEXCore/Source/Interface/Core/LookupCache.cpp b/FEXCore/Source/Interface/Core/LookupCache.cpp
+--- a/FEXCore/Source/Interface/Core/LookupCache.cpp
++++ b/FEXCore/Source/Interface/Core/LookupCache.cpp
+@@ -71,8 +71,9 @@ LookupCache::LookupCache(FEXCore::Context::ContextImpl* CTX)
+ }
+ 
+ LookupCache::~LookupCache() {
+-  FEXCore::Allocator::VirtualFree(reinterpret_cast<void*>(PagePointer), TotalCacheSize);
++  // Retire this registration before the allocator can reuse its address.
+   ctx->SyscallHandler->UnmarkOvercommitRange(PagePointer, TotalCacheSize);
++  FEXCore::Allocator::VirtualFree(reinterpret_cast<void*>(PagePointer), TotalCacheSize);
+ 
+   // No need to free BlockLinks map.
+   // These will get freed when their memory allocators are deallocated.
