@@ -115,7 +115,7 @@ def create(output, fixtures, checkpoint):
         'nexus-auxiliary/auxiliary.json', 'nexus-auxiliary/components', 'nexus-auxiliary/nghttp2-src',
         'nexus-auxiliary/media/media-manifest.json', 'nexus-auxiliary/media/stage',
         'nexus-auxiliary/media/ffmpeg-' + media['version'] + '.tar.xz',
-        'nexus-work/prepared.json', 'nexus-work/runtime-dependency-sources'])
+        'nexus-work/prepared.json', 'nexus-work/source-module-plan.json', 'nexus-work/runtime-dependency-sources'])
     write_new(checkpoint / 'checkpoint.json', {
         'schema': 1, 'kind': 'unvalidated-runtime-checkpoint', 'commit': sha,
         'architecture': built['metadata'].get('targetArchitecture', 'x86_64'),

@@ -51,6 +51,7 @@ class CheckpointTests(unittest.TestCase):
         prepared = self.temp / 'nexus-work'
         (prepared / 'runtime-dependency-sources').mkdir(parents=True)
         (prepared / 'prepared.json').write_text('{}')
+        (prepared / 'source-module-plan.json').write_text('{"required":["wine"],"excluded":["zluda-libs/rocm-systems"]}')
         self.built = {'graph': {'proton': self.sha}, 'source': str(self.source), 'runtime': str(self.runtime),
                       'aux': str(aux), 'prepared': str(prepared), 'metadata': {}, 'name': self.runtime_name}
         (self.output / 'built.json').write_text(json.dumps(self.built))
@@ -91,6 +92,7 @@ class CheckpointTests(unittest.TestCase):
                 self.assertEqual(json.loads((temp / 'nexus-output/built.json').read_text())['source'], str(source))
                 self.assertEqual(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source), (self.sha+'\n').encode())
                 self.assertEqual((temp / 'nexus-fixtures/probe.exe').read_bytes(), b'unchanged fixture')
+                self.assertEqual((temp / 'nexus-work/source-module-plan.json').read_text(), '{"required":["wine"],"excluded":["zluda-libs/rocm-systems"]}')
 
     def test_corrupt_archive_rejected_before_writes(self):
         cp.create(self.output, self.fixtures, self.checkpoint)
