@@ -50,6 +50,17 @@ def context():
     return sha
 
 
+def producer_identity():
+    run_id = os.environ.get('GITHUB_RUN_ID', '')
+    attempt = os.environ.get('GITHUB_RUN_ATTEMPT', '')
+    if not re.fullmatch('[1-9][0-9]*', run_id) or not re.fullmatch('[1-9][0-9]*', attempt):
+        raise ValueError('Exact checkpoint producer run and attempt required')
+    repository = distribution_identity()[0]
+    return {'repository': repository,
+            'family': 'nexus-cachyos' if repository.endswith('/nexus-runtime-cachyos') else 'nexus',
+            'runId': run_id, 'attempt': int(attempt)}
+
+
 def write_new(p, value):
     with p.open('x') as f:
         json.dump(value, f, indent=2)
@@ -170,6 +181,7 @@ def create(output, fixtures, checkpoint):
     pack(temp, checkpoint / 'support.tar.zst', support)
     write_new(checkpoint / 'checkpoint.json', {
         'schema': 1, 'kind': 'unvalidated-runtime-checkpoint', 'commit': sha,
+        'producer': producer_identity(),
         'architecture': built['metadata'].get('targetArchitecture', 'x86_64'),
         'sourceGraph': built['graph'], 'originalSource': str(source), 'originalTemp': str(temp),
         'builtSha256': digest(output / 'built.json'), 'fixturesSha256': digest(fixtures / 'fixtures.json'),
@@ -181,6 +193,12 @@ def create(output, fixtures, checkpoint):
 def restore(checkpoint, architecture):
     sha = context()
     info = read(checkpoint / 'checkpoint.json')
+    current = producer_identity()
+    producer = info.get('producer', {})
+    if (any(producer.get(k) != current[k] for k in ['repository', 'family', 'runId'])
+            or type(producer.get('attempt')) is not int
+            or not 1 <= producer['attempt'] <= current['attempt']):
+        raise ValueError('Wrong checkpoint producer')
     names = ['source.tar.zst', 'output.tar.zst', 'fixtures.tar.zst', 'support.tar.zst']
     if (info.get('schema') != 1 or info.get('kind') != 'unvalidated-runtime-checkpoint'
             or info.get('commit') != sha or info.get('architecture') != architecture

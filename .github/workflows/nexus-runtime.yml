@@ -134,7 +134,7 @@ jobs:
         id: checkpoint
         run: |
           python3 nexus/ci/runtime-checkpoint.py create "$RUNNER_TEMP/nexus-output" "$RUNNER_TEMP/nexus-fixtures" "$RUNNER_TEMP/nexus-checkpoint"
-          echo "name=runtime-checkpoint-x86_64-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+          echo "name=runtime-checkpoint-nexus-cachyos-x86_64-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.checkpoint.outputs.name }}

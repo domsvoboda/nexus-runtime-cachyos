@@ -15,6 +15,21 @@ test('cache is bounded and namespace depends on immutable SDK, not source revisi
   assert.equal(a.namespace,b.namespace);assert.notEqual(a.key,b.key);assert.equal(a.restorePrefix,b.restorePrefix);assert.notEqual(a.restorePrefix,c.restorePrefix);assert.equal(a.maxSize,'3G');assert.equal(a.compilerCheck,'content');
   assert.throws(()=>cachePlan('latest','1'.repeat(40)));assert.throws(()=>cachePlan(sdk,'main'));
 });
+test('family caches reuse compiler entries across commits and failed build attempts',()=>{
+  const identity={family:'nexus-cachyos',repository:'domsvoboda/nexus-runtime-cachyos',attempt:1};
+  const first=cachePlan(sdk,'1'.repeat(40),identity),retry=cachePlan(sdk,'1'.repeat(40),{...identity,attempt:2});
+  const next=cachePlan(sdk,'2'.repeat(40),identity),other=cachePlan(sdk,'1'.repeat(40),{family:'nexus',repository:'domsvoboda/nexus-runtime',attempt:1});
+  assert.equal(first.namespace,retry.namespace);assert.equal(first.namespace,next.namespace);assert.notEqual(first.namespace,other.namespace);
+  assert.notEqual(first.key,retry.key);assert.ok(first.key.startsWith(retry.restorePrefixes[0]));assert.ok(next.key.startsWith(first.restorePrefixes[1]));
+  for(const change of [{family:'arbitrary'},{repository:'untrusted/runtime'},{attempt:0},{attempt:1.5}])assert.throws(()=>cachePlan(sdk,'1'.repeat(40),{...identity,...change}));
+});
+test('source ancestry and checkpoint producer are preserved across validation retries',()=>{
+  const source=fs.readFileSync(path.join(repository,'.github/workflows/nexus-source.yml'),'utf8');
+  assert.match(source,/actions\/checkout@v4\n        with:\n          fetch-depth: 0/);
+  const runtime=fs.readFileSync(path.join(repository,'.github/workflows/nexus-runtime.yml'),'utf8');
+  assert.ok(runtime.includes('runtime-checkpoint-nexus-cachyos-x86_64-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT'));
+  assert.ok(runtime.includes('name: ${{ needs.runtime.outputs.checkpoint }}'));
+});
 test('full candidate workflow is main-only, read-only and cannot promote',()=>{
   const text=fs.readFileSync(path.join(repository,'.github/workflows/nexus-runtime.yml'),'utf8');
   assert.match(text,/branches: \[main\]/);assert.equal((text.match(/if: github\.ref == 'refs\/heads\/main'/g)||[]).length,3);

@@ -59,7 +59,7 @@ class CheckpointTests(unittest.TestCase):
         (self.fixtures / 'probe.exe').write_bytes(b'unchanged fixture')
         self.checkpoint = self.root / 'checkpoint'
         self.env = patch.dict(os.environ, {'GITHUB_REPOSITORY': cp.distribution_identity()[0], 'GITHUB_REF': 'refs/heads/main',
-                 'GITHUB_SHA': self.sha, 'GITHUB_WORKSPACE': str(self.source), 'RUNNER_TEMP': str(self.temp)})
+                 'GITHUB_SHA': self.sha, 'GITHUB_RUN_ID': '123', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_WORKSPACE': str(self.source), 'RUNNER_TEMP': str(self.temp)})
         self.env.start()
         self.addCleanup(self.env.stop)
         self.addCleanup(self.scratch.cleanup)
@@ -190,6 +190,23 @@ class CheckpointTests(unittest.TestCase):
         alias.symlink_to(work)
         with self.assertRaisesRegex(ValueError, 'Redirected strict XML provenance'):
             cp.verify_xml_source(self.source, alias, pin)
+
+    def test_checkpoint_rerun_accepts_original_producer_not_foreign_run(self):
+        cp.create(self.output, self.fixtures, self.checkpoint)
+        for changes in [{'GITHUB_RUN_ID': '124'}, {'GITHUB_RUN_ATTEMPT': '0'}]:
+            with patch.dict(os.environ, changes), self.assertRaises(ValueError):
+                cp.restore(self.checkpoint, 'x86_64')
+        info = cp.read(self.checkpoint / 'checkpoint.json')
+        info['producer']['attempt'] = 3
+        (self.checkpoint / 'checkpoint.json').write_text(json.dumps(info))
+        with patch.dict(os.environ, {'GITHUB_RUN_ATTEMPT': '2'}), self.assertRaisesRegex(ValueError, 'Wrong checkpoint producer'):
+            cp.restore(self.checkpoint, 'x86_64')
+        info['producer']['attempt'] = 1
+        (self.checkpoint / 'checkpoint.json').write_text(json.dumps(info))
+        source, temp = self.destination()
+        with patch.dict(os.environ, {'GITHUB_WORKSPACE': str(source), 'RUNNER_TEMP': str(temp), 'GITHUB_RUN_ATTEMPT': '2'}):
+            cp.restore(self.checkpoint, 'x86_64')
+        self.assertEqual((temp / 'nexus-output' / self.runtime_name / 'files/bin/wine').read_bytes(), self.binary.read_bytes())
 
     def test_corrupt_archive_rejected_before_writes(self):
         cp.create(self.output, self.fixtures, self.checkpoint)
