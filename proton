@@ -1654,15 +1654,6 @@ def default_compat_config():
                     "4920",
                 ]:
             ret.discard("gamedrive")
-            
-    if "STORE" in os.environ:
-        store = os.environ["STORE"]
-        if store in ["battlenet", "ea", "ubisoft"]:
-            ret.add("writecopy")
-
-    # hack to force gamedrive compat_config always for umu
-    if os.environ.get('UMU_ID', ''):
-        ret.add("gamedrive")
 
     # hack to force gamedrive compat_config always for umu
     if os.environ.get('UMU_ID', ''):
