@@ -4,6 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {sourceModulePlan} from './source-module-plan.mjs';
 export const project=path.dirname(fileURLToPath(import.meta.url));
 export const repository=path.dirname(project);
 export const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -72,7 +73,10 @@ export async function verifySourceGraph({full=false,main=false}={}){
     if(graph.fex!==inputs.fex.commit)throw Error('FEX source mismatch');
     for(const [name,expected]of Object.entries(inputs.modules))if(gitlink(repository,name)!==expected)throw Error('Graphics source mismatch: '+name);
     if(full){
-        const lines=run('git',['submodule','status','--recursive'],repository,{capture:true}).trimEnd().split('\n');
+        const inventory=git(repository,['ls-tree','-r','HEAD']).split('\n').filter(line=>line.startsWith('160000 commit ')).map(line=>({path:line.split('\t')[1],commit:line.split(' ')[2].split('\t')[0]}));
+        const plan=sourceModulePlan(inventory,inputs.variant?.family);
+        graph.excludedOptionalModules=plan.excluded;
+        const lines=run('git',['submodule','status','--recursive','--',...plan.required.map(module=>module.path)],repository,{capture:true}).trimEnd().split('\n');
         if(lines.length<20||lines.some(line=>!/^ [a-f0-9]{40} /.test(line)))throw Error('Complete exact recursive submodules are required');
         const wine=path.join(repository,'wine');
         if(git(wine,['rev-parse','HEAD'])!==graph.wine)throw Error('Wine checkout mismatch');
