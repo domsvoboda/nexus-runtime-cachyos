@@ -32,6 +32,14 @@ def distribution_identity():
     return 'domsvoboda/nexus-runtime-cachyos', 'nexus-runtime-cachyos-11.0-experimental'
 
 
+def runtime_name(sha, architecture):
+    repository, prefix = distribution_identity()
+    if architecture not in ['x86_64', 'arm64'] or (repository == 'domsvoboda/nexus-runtime-cachyos' and architecture != 'x86_64'):
+        raise ValueError('Unreviewed checkpoint architecture')
+    suffix = '-arm64' if architecture == 'arm64' else ''
+    return prefix + suffix + '-g' + sha[:8]
+
+
 def context():
     sha = os.environ.get('GITHUB_SHA', '')
     if (os.environ.get('GITHUB_REPOSITORY') != distribution_identity()[0]
@@ -93,7 +101,8 @@ def create(output, fixtures, checkpoint):
     built = read(output / 'built.json')
     source = Path(os.environ['GITHUB_WORKSPACE']).resolve()
     temp = Path(os.environ['RUNNER_TEMP']).resolve()
-    if (built['graph']['proton'] != sha or Path(built['source']).resolve() != source
+    if (built['name'] != runtime_name(sha, built['metadata'].get('targetArchitecture', 'x86_64'))
+            or built['graph']['proton'] != sha or Path(built['source']).resolve() != source
             or Path(built['runtime']).parent != output
             or Path(built['aux']) != temp / 'nexus-auxiliary'
             or Path(built['prepared']) != temp / 'nexus-work'
@@ -158,7 +167,7 @@ def restore(checkpoint, architecture):
         raise ValueError('Restored source graph mismatch')
     # Relocate paths only; source graph, SDK pins and every binary remain unchanged.
     name = built['name']
-    if name != distribution_identity()[1] + '-g' + sha[:8]:
+    if name != runtime_name(sha, architecture):
         raise ValueError('Invalid runtime directory name')
     built.update(source=str(source), runtime=str(output / name), aux=str(temp / 'nexus-auxiliary'),
                  prepared=str(temp / 'nexus-work'))

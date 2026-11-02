@@ -71,28 +71,40 @@ class CheckpointTests(unittest.TestCase):
         temp.mkdir()
         return source, temp
 
-    def test_roundtrip_both_architectures_relocates_only_paths(self):
-        for arch in ['x86_64', 'arm64']:
-            with self.subTest(arch=arch):
+    def test_roundtrip_variants_and_default_both_architectures_relocates_only_paths(self):
+        identities = [('domsvoboda/nexus-runtime-cachyos', 'nexus-runtime-cachyos-11.0-experimental', 'x86_64'),
+                      ('domsvoboda/nexus-runtime', 'nexus-runtime-11.0-experimental', 'x86_64'),
+                      ('domsvoboda/nexus-runtime', 'nexus-runtime-11.0-experimental', 'arm64')]
+        for index, (repository, prefix, arch) in enumerate(identities):
+            with self.subTest(repository=repository, arch=arch), patch.object(cp, 'distribution_identity', return_value=(repository, prefix)), patch.dict(os.environ, {'GITHUB_REPOSITORY': repository}):
+                name = cp.runtime_name(self.sha, arch)
+                runtime = self.output / name
+                if runtime != self.runtime:
+                    shutil.copytree(self.runtime, runtime, symlinks=True)
+                self.built.update(name=name, runtime=str(runtime))
                 self.built['metadata']['targetArchitecture'] = arch
                 (self.output / 'built.json').write_text(json.dumps(self.built))
-                bundle = self.root / ('checkpoint-' + arch)
+                bundle = self.root / ('checkpoint-' + str(index))
                 cp.create(self.output, self.fixtures, bundle)
-                source = self.root / ('destination-' + arch)
+                source = self.root / ('destination-' + str(index))
                 subprocess.run(['git', 'clone', '-q', str(self.source), str(source)], check=True)
-                temp = self.root / ('temp-' + arch)
+                temp = self.root / ('temp-' + str(index))
                 temp.mkdir()
                 with patch.dict(os.environ, {'GITHUB_WORKSPACE': str(source), 'RUNNER_TEMP': str(temp)}):
                     cp.restore(bundle, arch)
-                restored = temp / 'nexus-output' / self.runtime_name / 'files/bin/wine'
+                restored = temp / 'nexus-output' / name / 'files/bin/wine'
                 self.assertEqual(restored.read_bytes(), self.binary.read_bytes())
                 self.assertEqual(restored.stat().st_mode & 0o777, 0o755)
                 self.assertEqual(os.readlink(restored.with_name('wine64')), 'wine')
-                self.assertEqual(os.readlink(temp / 'nexus-output' / self.runtime_name / 'files/share/default_pfx/dosdevices/z:'), '/')
+                self.assertEqual(os.readlink(temp / 'nexus-output' / name / 'files/share/default_pfx/dosdevices/z:'), '/')
                 self.assertEqual(json.loads((temp / 'nexus-output/built.json').read_text())['source'], str(source))
                 self.assertEqual(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source), (self.sha+'\n').encode())
                 self.assertEqual((temp / 'nexus-fixtures/probe.exe').read_bytes(), b'unchanged fixture')
                 self.assertEqual((temp / 'nexus-work/source-module-plan.json').read_text(), '{"required":["wine"],"excluded":["zluda-libs/rocm-systems"]}')
+
+    def test_cachyos_arm_checkpoint_is_not_enabled_by_default_arm_support(self):
+        with self.assertRaisesRegex(ValueError, 'Unreviewed checkpoint architecture'):
+            cp.runtime_name(self.sha, 'arm64')
 
     def test_corrupt_archive_rejected_before_writes(self):
         cp.create(self.output, self.fixtures, self.checkpoint)
