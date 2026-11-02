@@ -1,3 +1,12 @@
+Nexus Runtime CachyOS
+---------------------
+
+This experimental CachyOS-derived Proton integration is for Xodus Nexus. It is
+independent and unofficial, with no proven performance or compatibility improvement
+over the existing Nexus runtime. No installable variant is available yet. See
+[Nexus build instructions](nexus/README.md) for pinned sources, x86_64 requirements
+and both Windows ABIs. The upstream Proton documentation follows.
+
 Introduction
 ------------
 
