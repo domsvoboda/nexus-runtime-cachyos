@@ -2,6 +2,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {availableParallelism} from 'node:os';
+import {sourceModulePlan} from './source-module-plan.mjs';
+import {sourceInventory} from './ci/initialize-source.mjs';
 import {project,repository,run,readJson,sha256,verifyInputs,verifySourceGraph,sourceEnvironment} from './inputs.mjs';
 import {verifyAuxiliary} from './auxiliary.mjs';
 import {sdkConfigureArgs,sdkContainerOption,sdkBuildJobs,sdkBuildPlan,verifySdkResumeMakefile} from './sdk-build-plan.mjs';
@@ -27,6 +29,7 @@ let graph,name,epoch;
 if(!resume){
   ({graph}=await verifySourceGraph({full:true,main:true}));
   await fs.mkdir(work,{recursive:false});
+  await fs.writeFile(path.join(work,'source-module-plan.json'),JSON.stringify({schema:1,...sourceModulePlan(sourceInventory(),inputs.variant?.family)},null,2)+'\n',{flag:'wx'});
   name=(inputs.variant?'nexus-runtime-cachyos-11.0-experimental':'nexus-runtime-11.0-experimental')+target.suffix+'-g'+graph.proton.slice(0,8);
   epoch=run('git',['log','-1','--format=%ct'],source,{capture:true}).trim();
   const configure=await fs.readFile(path.join(shader,'configure.ac'),'utf8');

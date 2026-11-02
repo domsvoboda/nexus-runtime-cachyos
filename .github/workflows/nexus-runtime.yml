@@ -75,10 +75,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: recursive
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Initialize only pinned required source modules
+        run: node nexus/ci/initialize-source.mjs --initialize
       - name: Free only unused preinstalled hosted-runner SDKs
         run: |
           test "$RUNNER_ENVIRONMENT" = github-hosted
