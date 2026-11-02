@@ -174,6 +174,23 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cp.verify_xml_source(self.source, work, pin)
 
+    def test_strict_xml_metadata_external_link_rejected_before_checkpoint(self):
+        pin, work = self.enable_xml_fixture()
+        manifest = work / 'xgr-xml2-source.json'
+        outside = self.temp / 'identical-xml-metadata.json'
+        manifest.rename(outside)
+        manifest.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError, 'Redirected strict XML provenance'):
+            cp.verify_xml_source(self.source, work, pin)
+        with self.assertRaisesRegex(ValueError, 'Redirected strict XML provenance'):
+            cp.create(self.output, self.fixtures, self.checkpoint)
+        manifest.unlink()
+        outside.rename(manifest)
+        alias = self.temp / 'redirected-work'
+        alias.symlink_to(work)
+        with self.assertRaisesRegex(ValueError, 'Redirected strict XML provenance'):
+            cp.verify_xml_source(self.source, alias, pin)
+
     def test_corrupt_archive_rejected_before_writes(self):
         cp.create(self.output, self.fixtures, self.checkpoint)
         with (self.checkpoint / 'output.tar.zst').open('ab') as f:

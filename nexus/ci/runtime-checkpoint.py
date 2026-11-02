@@ -7,6 +7,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
+import stat
 import sys
 import tarfile
 
@@ -113,7 +114,10 @@ def verify_xml_source(source, work, pin):
     if digest(lock) != pin.get('lockSha256'):
         raise ValueError('Changed strict XML lock')
     files = read(lock)['files']
-    metadata = read(work / 'xgr-xml2-source.json')
+    manifest = work / 'xgr-xml2-source.json'
+    if not stat.S_ISREG(manifest.lstat().st_mode) or manifest.resolve() != manifest.absolute():
+        raise ValueError('Redirected strict XML provenance')
+    metadata = read(manifest)
     if (len(files) != 99 or metadata.get('schema') != 1 or metadata.get('identity') != pin
             or metadata.get('files') != files
             or metadata.get('licenses') != {name: files[name] for name in ['COPYING', 'AUTHORS']}):

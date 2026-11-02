@@ -31,10 +31,12 @@ export async function verifyXml2Inventory(directory,files){
  }
 }
 export async function verifyXml2Source(work,pin,lockFile){
- const files=await lockedFiles(lockFile,pin),metadata=JSON.parse(await fs.readFile(path.join(work,xml2Manifest),'utf8'));
+ const files=await lockedFiles(lockFile,pin),manifest=path.join(work,xml2Manifest);
+ if(!(await fs.lstat(manifest)).isFile()||await fs.realpath(manifest)!==path.resolve(manifest))throw Error('Strict XML provenance redirected');
+ const bytes=await fs.readFile(manifest),metadata=JSON.parse(bytes);
  if(metadata.schema!==1||JSON.stringify(metadata.identity)!==JSON.stringify(pin)||JSON.stringify(metadata.files)!==JSON.stringify(files)||metadata.licenses?.COPYING!==files.COPYING||metadata.licenses?.AUTHORS!==files.AUTHORS)throw Error('Strict XML provenance changed');
  await verifyXml2Inventory(path.join(work,xml2Directory),files);
- return {identity:pin,manifestSha256:sha(await fs.readFile(path.join(work,xml2Manifest)))};
+ return {identity:pin,manifestSha256:sha(bytes)};
 }
 export async function prepareXml2Source(wine,work,pin,lockFile){
  const files=await lockedFiles(lockFile,pin);
