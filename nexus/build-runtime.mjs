@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {project,repository,run,readJson,sha256,verifyInputs,verifySourceGraph} from './inputs.mjs';
+import {availableParallelism} from 'node:os';
+import {project,repository,run,readJson,sha256,verifyInputs,verifySourceGraph,sourceEnvironment} from './inputs.mjs';
 import {verifyAuxiliary} from './auxiliary.mjs';
 import {sdkConfigureArgs,sdkContainerOption,sdkBuildJobs,sdkBuildPlan,verifySdkResumeMakefile} from './sdk-build-plan.mjs';
 import {assembleRuntime} from './assemble-runtime.mjs';
@@ -16,16 +17,17 @@ const [auxArg,workArg,outputArg,resumeArg]=args;
 if(!auxArg||!workArg||!outputArg||args.length>4||resumeArg&&resumeArg!=='--resume')throw Error('Usage: build-runtime.mjs [--arch x86_64|arm64] AUXILIARY NEW_WORK NEW_OUTPUT [--resume]');
 const aux=await fs.realpath(auxArg),work=path.resolve(workArg),output=path.resolve(outputArg),resume=resumeArg==='--resume';
 const {inputs}=await verifyInputs(),lockHash=sha256(await fs.readFile(path.join(project,'inputs.lock.json'))),sdk=inputs[target.sdk];
+if(inputs.variant&&!inputs.variant.architectures.includes(target.name))throw Error('Runtime variant architecture is not reviewed');
 const verifiedAux=await verifyAuxiliary(aux,inputs,target),auxiliary=verifiedAux.manifest;
 if(target.name==='arm64'&&llvmMingwPin().sha256!==auxiliary.toolchain.sha256)throw Error('Auxiliary toolchain differs from the workflow pin');
-const engine=sdkContainerOption(process.env.NEXUS_CONTAINER_ENGINE).split('=')[1],jobs=sdkBuildJobs(process.env.NEXUS_BUILD_JOBS);
+const engine=sdkContainerOption(process.env.NEXUS_CONTAINER_ENGINE).split('=')[1],jobs=sdkBuildJobs(process.env.NEXUS_BUILD_JOBS??availableParallelism());
 const source=repository,wine=path.join(source,'wine'),shader=path.join(source,'vkd3d'),fex=path.join(source,'FEX');
 const stateFile=path.join(work,'prepared.json'),build=path.join(work,'sdk-build');
 let graph,name,epoch;
 if(!resume){
   ({graph}=await verifySourceGraph({full:true,main:true}));
   await fs.mkdir(work,{recursive:false});
-  name='nexus-runtime-11.0-experimental'+target.suffix+'-g'+graph.proton.slice(0,8);
+  name=(inputs.variant?'nexus-runtime-cachyos-11.0-experimental':'nexus-runtime-11.0-experimental')+target.suffix+'-g'+graph.proton.slice(0,8);
   epoch=run('git',['log','-1','--format=%ct'],source,{capture:true}).trim();
   const configure=await fs.readFile(path.join(shader,'configure.ac'),'utf8');
   requireShaderVersion(configure,inputs.shader.version);
@@ -35,14 +37,14 @@ if(!resume){
   await fs.mkdir(path.join(wine,'include/nghttp2'));
   for(const header of Object.keys(auxiliary.headers))await fs.copyFile(path.join(aux,'components/nghttp2',header),path.join(wine,'include/nghttp2',header),fs.constants.COPYFILE_EXCL);
   await fs.mkdir(build);
-  run(path.join(source,'configure.sh'),sdkConfigureArgs({name,engine,sdk,arch:target.name}),build);
+  run(path.join(source,'configure.sh'),sdkConfigureArgs({name,engine,sdk,arch:target.name,variant:inputs.variant?.family}),build,inputs.variant?{env:{...sourceEnvironment(),CFLAGS:'-O2 -march=nocona -mtune=core-avx2',RUSTFLAGS:'-Copt-level=3 -Ctarget-cpu=nocona'}}:{});
   await fs.writeFile(stateFile,JSON.stringify({schema:1,graph,name,epoch,engine,arch:target.name,source,inputsSha256:lockHash,...verifiedAux},null,2)+'\n',{flag:'wx'});
 }else{
   const state=await readJson(stateFile);
   ({graph,name,epoch}=state);
   if(state.schema!==1||state.source!==source||state.engine!==engine||(state.arch??'x86_64')!==target.name||state.inputsSha256!==lockHash||state.manifestSha256!==verifiedAux.manifestSha256||state.mediaSha256!==verifiedAux.mediaSha256)throw Error('Resume input mismatch');
   if(run('git',['rev-parse','HEAD'],source,{capture:true}).trim()!==graph.proton||run('git',['rev-parse','refs/remotes/origin/main'],source,{capture:true}).trim()!==graph.proton)throw Error('Resume requires the exact selected main source');
-  verifySdkResumeMakefile(await fs.readFile(path.join(build,'Makefile'),'utf8'),{source,name,sdk,engine,arch:target.name});
+  verifySdkResumeMakefile(await fs.readFile(path.join(build,'Makefile'),'utf8'),{source,name,sdk,engine,arch:target.name,variant:inputs.variant?.family});
 }
 // Reject edits even on resume. Only the exact checksum-verified shader/FEX
 // patches and nghttp2 headers may differ from the pinned source graph.

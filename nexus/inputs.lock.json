@@ -45,5 +45,19 @@
     "runtime-compat/playfab-save-folder.c": "fa63ceff1c77e2a1cdac5daae134ad46c29a20bf889208b5d73cfa808d53d56f",
     "runtime-compat/gaming-services-version.c": "3410efcc5c862085684323034b41131ce1bc6d44c36fb013ecc4b9dc197dd128",
     "runtime-compat/package-registration.c": "82246b89382c76fee31f0d5765c0129f1bcf41db66b425fc38a1a017553a12ca"
+  },
+  "variant": {
+    "family": "nexus-cachyos",
+    "sourceRepository": "domsvoboda/nexus-runtime-cachyos",
+    "wineRepository": "domsvoboda/nexus-wine-cachyos",
+    "cachyosProton": "26827b131c93a1ef9e29f27e0260f1051fccbff5",
+    "cachyosWine": "cd14106e4fc0f96006005b07985e49cc1517e9c0",
+    "nexusProton": "a22a5197cc680f38eb8db222f78004cd98a884af",
+    "wine": "2e0b172c34326cec95f33776c0d019a2b4c06f66",
+    "xgameruntime": "02787d4228d94f54d5bb50d33e2f0b9891d1029a",
+    "architectures": [
+      "x86_64"
+    ],
+    "prefixSchema": 1
   }
 }

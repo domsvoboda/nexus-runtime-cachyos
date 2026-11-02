@@ -19,6 +19,11 @@ export function run(command,args,cwd,{capture=false,input,timeout=30*60*1000,env
 const hash40=value=>typeof value==='string'&&/^[a-f0-9]{40}$/.test(value);
 const hash64=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 export function validateInputs(inputs){
+    if(inputs.variant){
+        const variant=inputs.variant;
+        if(variant.family!=='nexus-cachyos'||variant.sourceRepository!=='domsvoboda/nexus-runtime-cachyos'||variant.wineRepository!=='domsvoboda/nexus-wine-cachyos'||variant.prefixSchema!==1||JSON.stringify(variant.architectures)!=='["x86_64"]')throw Error('Unsupported runtime variant');
+        for(const key of ['cachyosProton','cachyosWine','nexusProton','wine','xgameruntime'])if(!hash40(variant[key]))throw Error('Unpinned runtime variant '+key);
+    }
     if(inputs.schema!==1||inputs.status!=='development'||inputs.channel!=='experimental')throw Error('Only development Experimental inputs are accepted');
     if(!hash64(inputs.verifiedAuxiliaryManifestSha256))throw Error('Missing verified auxiliary manifest pin');
     if(!/^registry\.gitlab\.steamos\.cloud\/proton\/steamrt4\/sdk\/x86_64@sha256:[a-f0-9]{64}$/.test(inputs.sdk))throw Error('SDK must be pinned by digest');
@@ -58,8 +63,12 @@ export async function verifySourceGraph({full=false,main=false}={}){
     if(main&&process.env.GITHUB_REF&&process.env.GITHUB_REF!=='refs/heads/main')throw Error('Distribution builds are main-only');
     if(git(repository,['status','--porcelain','--untracked-files=all']))throw Error('Proton source must be clean before preparation');
     const url=git(repository,['config','-f','.gitmodules','--get','submodule.wine.url']);
-    if(url!=='https://github.com/domsvoboda/nexus-wine.git')throw Error('Wrong Wine fork');
+    if(url!==`https://github.com/${inputs.variant?.wineRepository??'domsvoboda/nexus-wine'}.git`)throw Error('Wrong Wine fork');
     const graph={proton:head,wine:gitlink(repository,'wine'),fex:gitlink(repository,'FEX'),modules:{...inputs.modules}};
+    if(inputs.variant){
+        if(graph.wine!==inputs.variant.wine)throw Error('Variant Wine source mismatch');
+        for(const base of [inputs.variant.cachyosProton,inputs.variant.nexusProton])run('git',['merge-base','--is-ancestor',base,'HEAD'],repository);
+    }
     if(graph.fex!==inputs.fex.commit)throw Error('FEX source mismatch');
     for(const [name,expected]of Object.entries(inputs.modules))if(gitlink(repository,name)!==expected)throw Error('Graphics source mismatch: '+name);
     if(full){
@@ -69,6 +78,10 @@ export async function verifySourceGraph({full=false,main=false}={}){
         if(git(wine,['rev-parse','HEAD'])!==graph.wine)throw Error('Wine checkout mismatch');
         if(git(wine,['config','-f','.gitmodules','--get','submodule.dlls/xgameruntime.url'])!=='https://github.com/domsvoboda/nexus-xgameruntime.git')throw Error('Wrong C++ runtime fork');
         graph.xgameruntime=gitlink(wine,'dlls/xgameruntime');
+        if(inputs.variant){
+            if(graph.xgameruntime!==inputs.variant.xgameruntime)throw Error('Variant XGR source mismatch');
+            run('git',['merge-base','--is-ancestor',inputs.variant.cachyosWine,'HEAD'],wine);
+        }
         if(git(path.join(wine,'dlls/xgameruntime'),['rev-parse','HEAD'])!==graph.xgameruntime)throw Error('C++ runtime checkout mismatch');
         for(const [directory,base]of [[repository,inputs.upstream.proton],[wine,inputs.upstream.wine],[path.join(wine,'dlls/xgameruntime'),inputs.upstream.xgameruntime]])run('git',['merge-base','--is-ancestor',base,'HEAD'],directory);
         graph.submodules=lines;

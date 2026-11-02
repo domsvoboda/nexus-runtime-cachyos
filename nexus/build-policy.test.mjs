@@ -60,7 +60,7 @@ test('ARM64 candidate workflow compiles only on main, including manual dispatch'
   const jobs=text.slice(text.indexOf('\njobs:\n')).split(/\n  (?=[a-z-]+:\n)/).slice(1);
   assert.equal(jobs.length,(text.match(/^    runs-on: /gm)||[]).length);
   assert.ok(jobs.length>=2);
-  for(const job of jobs)assert.ok(job.split('\n')[1]==="    if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')");
+  for(const job of jobs)assert.ok(job.split('\n')[1]==="    if: github.repository == 'domsvoboda/nexus-runtime' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')");
   assert.match(text,/node nexus\/build-auxiliary\.mjs --arch arm64 /);
   assert.match(text,/node nexus\/build-runtime\.mjs --arch arm64 /);
   assert.match(text,/runs-on: ubuntu-24\.04-arm/);
@@ -76,7 +76,7 @@ test('source-only integrations never compile x64 or ARM64 candidates',()=>{
   for(const file of ['nexus-runtime.yml','nexus-runtime-arm64.yml']){
     const text=fs.readFileSync(path.join(repository,'.github/workflows',file),'utf8');
     const jobs=text.slice(text.indexOf('\njobs:\n')).split(/\n  (?=[a-z-]+:\n)/).slice(1);
-    for(const job of jobs)assert.equal(job.split('\n')[1],'    if: '+guard);
+    for(const job of jobs)assert.equal(job.split('\n')[1],'    if: '+(file==='nexus-runtime-arm64.yml'?"github.repository == 'domsvoboda/nexus-runtime' && ":'')+guard);
   }
   for(const ref of ['refs/heads/main','refs/heads/develop','refs/pull/1/merge'])
     for(const message of ['ordinary integration','[source-only] Integrate checked source']){

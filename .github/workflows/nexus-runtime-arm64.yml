@@ -15,7 +15,7 @@ env:
   NEXUS_LLVM_MINGW_SHA256: e77c4acfa44184f6b0c52b814d724ad63b2ecebb3c3f6f842c0846e717cbd23c
 jobs:
   auxiliary:
-    if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')
+    if: github.repository == 'domsvoboda/nexus-runtime' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')
     runs-on: ubuntu-22.04-arm
     timeout-minutes: 60
     steps:
@@ -61,7 +61,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   runtime:
-    if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')
+    if: github.repository == 'domsvoboda/nexus-runtime' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')
     needs: auxiliary
     outputs:
       checkpoint: ${{ steps.checkpoint.outputs.name }}
@@ -141,7 +141,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   validation:
-    if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')
+    if: github.repository == 'domsvoboda/nexus-runtime' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')
     needs: runtime
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 90

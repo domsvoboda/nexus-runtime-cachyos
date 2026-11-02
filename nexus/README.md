@@ -44,3 +44,9 @@ pass. A different source commit requires a new build.
 
 Auxiliary dependencies are cached by their recipe, input locks, architecture and
 runner image. Restored dependencies are verified before use.
+
+This source line is experimental and has no built or installable variant yet.
+Only conservative Linux x86_64 with both Windows ABIs is in the current build
+plan. ARM64, wow64 and optional vendor/extras stacks are not enabled. Exact
+CachyOS, Nexus Wine and XGameRuntime revisions are recorded in inputs.lock.json.
+The existing Nexus default runtime is unchanged.

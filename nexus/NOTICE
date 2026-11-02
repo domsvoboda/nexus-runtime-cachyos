@@ -19,3 +19,7 @@ in domsvoboda/nexus-runtime.
 Binary redistribution must include the complete corresponding-source archive
 and the applicable licenses. No game binaries, Microsoft accounts, tokens,
 credentials, Wine prefixes or saved games are part of this repository.
+
+This experimental variant additionally derives from CachyOS/proton-cachyos
+and CachyOS/wine-cachyos at the exact revisions in inputs.lock.json. CachyOS
+and its component contributors retain all existing copyright and license notices.
