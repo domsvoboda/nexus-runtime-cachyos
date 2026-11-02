@@ -4,15 +4,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {readJson,sourceEnvironment} from '../inputs.mjs';
+import {readJson,sourceEnvironment,verifyInputs} from '../inputs.mjs';
 import {fileHash,treeHash,assertPortable} from './provenance.mjs';
 import {verifyXml2Source} from '../xml2-source.mjs';
 import {sourceArchiveArgs} from './source-archive.mjs';
+const {inputs:packagingInputs}=await verifyInputs();
 const [outputArg,validationArg]=process.argv.slice(2);
 if(process.env.GITHUB_REF!=='refs/heads/main'||!/^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPOSITORY||'')||!/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA||'')||!/^\d+$/.test(process.env.GITHUB_RUN_ID||''))throw Error('Packaging requires an exact main GitHub runtime build');
 if(!outputArg||!validationArg||process.argv.length!==4)throw Error('BUILD_OUTPUT VALIDATION required');
 const output=await fs.realpath(outputArg),validation=await fs.realpath(validationArg);
 const built=await readJson(output+'/built.json'),proof=await readJson(validation+'/results.json');
+if(JSON.stringify(built.inputs.xml2Source)!==JSON.stringify(packagingInputs.xml2Source)||JSON.stringify(built.graph.xml2Source)!==JSON.stringify(packagingInputs.xml2Source))throw Error('Strict XML packaging identity changed');
 if(built.metadata.targetArchitecture!=='arm64'||built.graph.proton!==process.env.GITHUB_SHA||!/^nexus-runtime-11\.0-experimental-arm64-g[a-f0-9]{8}$/.test(built.name)||path.dirname(built.runtime)!==output||path.basename(built.runtime)!==built.name)throw Error('Not the exact ARM64 main distribution source');
 const gates=['arm64-layout','arm64-prefix-boot','arm64-load-aarch64','arm64-load-x86_64','arm64-load-i386',...['win64','win32'].flatMap(abi=>['component','authentication','user-contracts','store'].map(gate=>abi+'-'+gate)),'arm64-http','arm64-media','arm64-graphics'];
 if(proof.passed!==true||proof.arch!=='arm64'||proof.stableApproved!==false||proof.realGameTest!==false||proof.builtSha256!==await fileHash(output+'/built.json')||proof.treeSha256!==await treeHash(built.runtime)||JSON.stringify(proof.graph)!==JSON.stringify(built.graph))throw Error('Unvalidated or changed runtime');

@@ -148,6 +148,11 @@ class CheckpointTests(unittest.TestCase):
         for name in ['parser.c', 'COPYING', 'AUTHORS']:
             self.assertEqual((temp / 'nexus-work/xgr-xml2-source' / name).read_bytes(), (work / 'xgr-xml2-source' / name).read_bytes())
 
+    def test_strict_xml_identity_cannot_be_omitted_from_checkpoint(self):
+        pin, work = self.enable_xml_fixture()
+        with self.assertRaises(ValueError):
+            cp.verify_xml_source(self.source, work, None)
+
     def test_strict_xml_changed_missing_extra_and_redirected_files_rejected(self):
         pin, work = self.enable_xml_fixture()
         file = work / 'xgr-xml2-source/parser.c'

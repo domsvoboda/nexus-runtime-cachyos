@@ -14,6 +14,7 @@ if(process.env.GITHUB_REF!=='refs/heads/main'||process.env.GITHUB_REPOSITORY!==i
 if(!outputArg||!validationArg||process.argv.length!==4)throw Error('BUILD_OUTPUT VALIDATION required');
 const output=await fs.realpath(outputArg),validation=await fs.realpath(validationArg);
 const built=await readJson(output+'/built.json'),proof=await readJson(validation+'/results.json');
+if(JSON.stringify(built.inputs.xml2Source)!==JSON.stringify(packagingInputs.xml2Source)||JSON.stringify(built.graph.xml2Source)!==JSON.stringify(packagingInputs.xml2Source))throw Error('Strict XML packaging identity changed');
 if(built.diagnosticOnly||built.promotable===false||built.metadata.diagnosticOnly||built.metadata.promotable===false||built.graph.proton!==process.env.GITHUB_SHA||built.name!==distributionName(packagingInputs,process.env.GITHUB_SHA)||path.dirname(built.runtime)!==output||path.basename(built.runtime)!==built.name)throw Error('Not the exact main distribution source');
 if(proof.passed!==true||proof.stableApproved!==false||proof.realGameTest!==false||proof.realAccountTest!==false||proof.realCloudTest!==false||proof.builtSha256!==await fileHash(output+'/built.json')||proof.treeSha256!==await treeHash(built.runtime)||JSON.stringify(proof.graph)!==JSON.stringify(built.graph))throw Error('Unvalidated or changed runtime');
 validateGateResults(proof.results);await assertPortable(built.runtime);

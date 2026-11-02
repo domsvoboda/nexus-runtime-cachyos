@@ -97,6 +97,10 @@ def unpack(archive, destination):
 
 
 def verify_xml_source(source, work, pin):
+    inputs_file = source / 'nexus/inputs.lock.json'
+    declared = read(inputs_file).get('xml2Source') if inputs_file.is_file() else None
+    if declared != pin:
+        raise ValueError('Missing or changed strict XML source identity')
     if pin is None:
         return
     if (pin.get('repository') != 'ValveSoftware/wine'
