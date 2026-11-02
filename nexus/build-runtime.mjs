@@ -6,7 +6,7 @@ import {sourceModulePlan} from './source-module-plan.mjs';
 import {sourceInventory} from './ci/initialize-source.mjs';
 import {project,repository,run,readJson,sha256,verifyInputs,verifySourceGraph,sourceEnvironment} from './inputs.mjs';
 import {verifyAuxiliary} from './auxiliary.mjs';
-import {sdkConfigureArgs,sdkContainerOption,sdkBuildJobs,sdkBuildPlan,verifySdkResumeMakefile} from './sdk-build-plan.mjs';
+import {sdkConfigureArgs,sdkContainerOption,sdkBuildJobs,sdkBuildPlan,captureSdkConfiguration,verifyPreparedSdkConfiguration} from './sdk-build-plan.mjs';
 import {assembleRuntime} from './assemble-runtime.mjs';
 import {requireShaderVersion} from './shader-version.mjs';
 import {targetArgument} from './target.mjs';
@@ -41,13 +41,14 @@ if(!resume){
   for(const header of Object.keys(auxiliary.headers))await fs.copyFile(path.join(aux,'components/nghttp2',header),path.join(wine,'include/nghttp2',header),fs.constants.COPYFILE_EXCL);
   await fs.mkdir(build);
   run(path.join(source,'configure.sh'),sdkConfigureArgs({name,engine,sdk,arch:target.name,variant:inputs.variant?.family}),build,inputs.variant?{env:{...sourceEnvironment(),CFLAGS:'-O2 -march=nocona -mtune=core-avx2',RUSTFLAGS:'-Copt-level=3 -Ctarget-cpu=nocona'}}:{});
-  await fs.writeFile(stateFile,JSON.stringify({schema:1,graph,name,epoch,engine,arch:target.name,source,inputsSha256:lockHash,...verifiedAux},null,2)+'\n',{flag:'wx'});
+  const sdkConfiguration=captureSdkConfiguration(await fs.readFile(path.join(build,'Makefile'),'utf8'),{source,name,sdk,engine,arch:target.name,variant:inputs.variant?.family});
+  await fs.writeFile(stateFile,JSON.stringify({schema:1,graph,name,epoch,engine,arch:target.name,source,inputsSha256:lockHash,sdkConfiguration,...verifiedAux},null,2)+'\n',{flag:'wx'});
 }else{
   const state=await readJson(stateFile);
   ({graph,name,epoch}=state);
   if(state.schema!==1||state.source!==source||state.engine!==engine||(state.arch??'x86_64')!==target.name||state.inputsSha256!==lockHash||state.manifestSha256!==verifiedAux.manifestSha256||state.mediaSha256!==verifiedAux.mediaSha256)throw Error('Resume input mismatch');
   if(run('git',['rev-parse','HEAD'],source,{capture:true}).trim()!==graph.proton||run('git',['rev-parse','refs/remotes/origin/main'],source,{capture:true}).trim()!==graph.proton)throw Error('Resume requires the exact selected main source');
-  verifySdkResumeMakefile(await fs.readFile(path.join(build,'Makefile'),'utf8'),{source,name,sdk,engine,arch:target.name,variant:inputs.variant?.family});
+  verifyPreparedSdkConfiguration(await fs.readFile(path.join(build,'Makefile'),'utf8'),{source,name,sdk,engine,arch:target.name,variant:inputs.variant?.family},state.sdkConfiguration);
 }
 // Reject edits even on resume. Only the exact checksum-verified shader/FEX
 // patches and nghttp2 headers may differ from the pinned source graph.
