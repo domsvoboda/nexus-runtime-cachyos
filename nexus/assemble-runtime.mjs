@@ -4,6 +4,7 @@ import path from 'node:path';
 import {project,readJson,sha256} from './inputs.mjs';
 import {copySdkRedistribution,makeSdkLinksPortable} from './runtime-copy.mjs';
 import {targets} from './target.mjs';
+import {writeFamilyManifest} from './family-manifest.mjs';
 import {moduleCapabilities} from './module-capabilities.mjs';
 import {buildPackageRegistration} from './package-registration.mjs';
 import {verifyRuntimeDependencies} from './runtime-dependency-sources.mjs';
@@ -78,7 +79,8 @@ metadata.realGameTest=false;metadata.stableApproved=false;
 metadata.baseWineSha256=sha256(await fs.readFile(path.join(files,target.bin,'wine.nexus-original')));
 await fs.writeFile(path.join(runtime,'XODUS_NEXUS_PATCH.json'),JSON.stringify(metadata,null,2)+'\n',{flag:'wx'});
 const links=await makeSdkLinksPortable(runtime,build);
-await fs.writeFile(path.join(output,'built.json'),JSON.stringify({schema:1,name,runtime,metadata,inputs,graph,source,prepared:work,aux,links},null,2)+'\n',{flag:'wx'});
+const familyReceipt=inputs.variant?await writeFamilyManifest(runtime,{family:inputs.variant.family,sourceRepository:inputs.variant.sourceRepository,sourceCommit:graph.proton,sourceLockSha256:lockHash}):undefined;
+await fs.writeFile(path.join(output,'built.json'),JSON.stringify({schema:1,name,runtime,metadata,inputs,graph,source,prepared:work,aux,links,familyReceipt},null,2)+'\n',{flag:'wx'});
 console.log('Built an isolated Experimental candidate. Native validation is still required.');
 
 
