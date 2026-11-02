@@ -7,6 +7,7 @@ import {hasCompleteHttpCoverage} from './http-coverage.mjs';
 import path from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {project,readJson,sourceEnvironment} from '../inputs.mjs';
+import {verifySdkNotices} from '../sdk-notices.mjs';
 import {fileHash,treeHash,assertPortable} from './provenance.mjs';
 import {peMachine,elfMachine} from '../pe.mjs';
 import {targets} from '../target.mjs';
@@ -22,10 +23,7 @@ await fs.mkdir(work,{recursive:false});await fs.chmod(work,0o700);
 const fixtureProof=await readJson(fixtures+'/fixtures.json');
 if(fixtureProof.sdk!==built.inputs.sdkArm64||JSON.stringify(fixtureProof.sourceGraph)!==JSON.stringify(built.graph))throw Error('Test fixtures do not match the ARM64 SDK/source graph');
 for(const [file,expected]of Object.entries(fixtureProof.hashes))if(await fileHash(fixtures+'/'+file)!==expected)throw Error('Changed test fixture');
-for(const name of ['GCC-runtime-copyright','MinGW-runtime-copyright','libxml2-COPYING']){
-  const source=project+'/licenses/'+name,file=files+'/share/doc/nexus-runtime/'+name;
-  try{await fs.copyFile(source,file,fs.constants.COPYFILE_EXCL);}catch(e){if(e.code!=='EEXIST'||await fileHash(file)!==await fileHash(source))throw e;}
-}
+await verifySdkNotices(runtime,project);
 if(await fileHash(files+'/share/doc/nexus-runtime/FEX-LICENSE')!==await fileHash(built.source+'/FEX/LICENSE'))throw Error('Pinned FEX notice missing or changed');
 await assertPortable(runtime);
 const proof={schema:1,arch:'arm64',scope:'exact ARM64 runtime, synthetic offline gates only',realGameTest:false,realAccountTest:false,realCloudTest:false,stableApproved:false,graph:built.graph,runtime,builtSha256:await fileHash(output+'/built.json'),treeSha256:await treeHash(runtime),fixtureProofSha256:await fileHash(fixtures+'/fixtures.json'),results:[]};

@@ -4,6 +4,7 @@ import {hasCompleteHttpCoverage} from './http-coverage.mjs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {project,readJson,sourceEnvironment} from '../inputs.mjs';
+import {verifySdkNotices} from '../sdk-notices.mjs';
 import {fileHash,treeHash,assertPortable,validateGateResults} from './provenance.mjs';
 import {prepareValidationTools,validationProcessOutput} from './validation-tools.mjs';
 const [outputArg,fixturesArg,validationArg]=process.argv.slice(2);
@@ -15,11 +16,8 @@ await fs.mkdir(work,{recursive:false});await fs.chmod(work,0o700);
 const fixtureProof=await readJson(fixtures+'/fixtures.json');
 if(fixtureProof.sdk!==built.inputs.sdk||JSON.stringify(fixtureProof.sourceGraph)!==JSON.stringify(built.graph))throw Error('Test fixtures do not match the selected SDK/source graph');
 for(const [file,expected]of Object.entries(fixtureProof.hashes))if(await fileHash(fixtures+'/'+file)!==expected)throw Error('Changed test fixture');
-// Preserve the exact required SDK notices before the immutable runtime binding.
-for(const name of ['GCC-runtime-copyright','MinGW-runtime-copyright','libxml2-COPYING']){
-  const source=project+'/licenses/'+name,target=files+'/share/doc/nexus-runtime/'+name;
-  try{await fs.copyFile(source,target,fs.constants.COPYFILE_EXCL);}catch(e){if(e.code!=='EEXIST'||await fileHash(target)!==await fileHash(source))throw e;}
-}
+// Verify already assembled notices without mutating the inventoried runtime.
+await verifySdkNotices(runtime,project);
 await assertPortable(runtime);
 const proof={schema:1,scope:'exact coherent runtime, synthetic offline gates only',realGameTest:false,realAccountTest:false,realCloudTest:false,stableApproved:false,graph:built.graph,runtime,builtSha256:await fileHash(output+'/built.json'),treeSha256:await treeHash(runtime),fixtureProofSha256:await fileHash(fixtures+'/fixtures.json'),results:[],bindings:{}};
 const tools=await prepareValidationTools(files,work+'/candidate-tools');

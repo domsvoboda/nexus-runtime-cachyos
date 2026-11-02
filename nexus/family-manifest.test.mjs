@@ -5,6 +5,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {writeFamilyManifest} from './family-manifest.mjs';
 import {project} from './inputs.mjs';
+import {stageSdkNotices,verifySdkNotices,sdkNoticeNames} from './sdk-notices.mjs';
+import {treeHash} from './ci/provenance.mjs';
 const identity={family:'nexus-cachyos',sourceRepository:'domsvoboda/nexus-runtime-cachyos',sourceCommit:'a'.repeat(40),sourceLockSha256:'b'.repeat(64)};
 async function fixture(fn){
  const root=await fs.mkdtemp(path.join(project,'../.family-fixture-'));
@@ -39,4 +41,18 @@ test('manifest binds source metadata and refuses unexecutable or redirected laun
  await fs.chmod(path.join(root,'proton'),0o644);await assert.rejects(writeFamilyManifest(root,identity));
  await fs.chmod(path.join(root,'proton'),0o755);await fs.rename(path.join(root,'proton'),path.join(root,'proton-real'));await fs.symlink('proton-real',path.join(root,'proton'));
  await assert.rejects(writeFamilyManifest(root,identity),/incomplete/);
+}));
+
+test('license validation preserves the completed family inventory and candidate tree',()=>fixture(async root=>{
+ await stageSdkNotices(root,project);
+ await writeFamilyManifest(root,identity);
+ const before=await treeHash(root),bytes=await fs.readFile(path.join(root,'nexus-family.json'));
+ await verifySdkNotices(root,project);
+ assert.equal(await treeHash(root),before);
+ assert.deepEqual(await fs.readFile(path.join(root,'nexus-family.json')),bytes);
+ const manifest=JSON.parse(bytes);
+ for(const name of sdkNoticeNames)assert.match(manifest.files['files/share/doc/nexus-runtime/'+name],/^[a-f0-9]{64}$/);
+ const notice=path.join(root,'files/share/doc/nexus-runtime',sdkNoticeNames[0]);
+ await fs.unlink(notice);await assert.rejects(verifySdkNotices(root,project));
+ await assert.rejects(fs.access(notice));
 }));
