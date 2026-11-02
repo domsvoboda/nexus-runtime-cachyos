@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validateInputs,verifyInputs,sourceEnvironment} from './inputs.mjs';
+import {validateInputs,verifyInputs,sourceEnvironment,verifyVariantRuntimeGraph} from './inputs.mjs';
 const {inputs}=await verifyInputs();
 test('all SDK, auxiliary and shader inputs are immutable development sources',()=>{
     validateInputs(inputs);
@@ -18,4 +18,11 @@ test('CachyOS variant pins its actual source graph and supported architecture',(
     for(const mutate of [x=>x.variant.wine='main',x=>x.variant.sourceRepository='other/runtime',x=>x.variant.wineRepository='CachyOS/wine-cachyos',x=>x.variant.architectures.push('arm64'),x=>x.variant.prefixSchema=2,x=>x.variant.xgameruntime='latest']){
         const copy=structuredClone(inputs);mutate(copy);assert.throws(()=>validateInputs(copy));
     }
+});
+
+test('recursive variant graph rejects stale or changed Wine and XGR gitlinks',()=>{
+ const graph={wine:inputs.variant.wine,xgameruntime:inputs.variant.xgameruntime};
+ verifyVariantRuntimeGraph(inputs,graph);
+ assert.throws(()=>verifyVariantRuntimeGraph(inputs,{...graph,xgameruntime:'02787d4228d94f54d5bb50d33e2f0b9891d1029a'}));
+ assert.throws(()=>verifyVariantRuntimeGraph(inputs,{...graph,wine:'0'.repeat(40)}));
 });

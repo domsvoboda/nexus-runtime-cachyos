@@ -57,6 +57,11 @@ function gitlink(cwd,name){
     if(!result)throw Error('Missing source gitlink: '+name);
     return result[1];
 }
+export function verifyVariantRuntimeGraph(inputs,graph){
+    if(!inputs.variant)return;
+    if(graph.wine!==inputs.variant.wine)throw Error('Variant Wine source mismatch');
+    if(graph.xgameruntime!==inputs.variant.xgameruntime)throw Error('Variant XGR source mismatch');
+}
 export async function verifySourceGraph({full=false,main=false}={}){
     const {inputs}=await verifyInputs();
     const head=git(repository,['rev-parse','HEAD']);
@@ -82,8 +87,10 @@ export async function verifySourceGraph({full=false,main=false}={}){
         if(git(wine,['rev-parse','HEAD'])!==graph.wine)throw Error('Wine checkout mismatch');
         if(git(wine,['config','-f','.gitmodules','--get','submodule.dlls/xgameruntime.url'])!=='https://github.com/domsvoboda/nexus-xgameruntime.git')throw Error('Wrong C++ runtime fork');
         graph.xgameruntime=gitlink(wine,'dlls/xgameruntime');
+        const wineLock=await readJson(path.join(wine,'nexus/source.lock.json'));
+        if(wineLock.xgameruntime!==graph.xgameruntime)throw Error('Wine declared runtime differs from actual recursive gitlink');
         if(inputs.variant){
-            if(graph.xgameruntime!==inputs.variant.xgameruntime)throw Error('Variant XGR source mismatch');
+            verifyVariantRuntimeGraph(inputs,graph);
             run('git',['merge-base','--is-ancestor',inputs.variant.cachyosWine,'HEAD'],wine);
         }
         if(git(path.join(wine,'dlls/xgameruntime'),['rev-parse','HEAD'])!==graph.xgameruntime)throw Error('C++ runtime checkout mismatch');
