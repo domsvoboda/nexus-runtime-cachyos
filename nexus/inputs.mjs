@@ -4,6 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {validateXml2Pin} from './xml2-source.mjs';
 import {sourceModulePlan} from './source-module-plan.mjs';
 export const project=path.dirname(fileURLToPath(import.meta.url));
 export const repository=path.dirname(project);
@@ -20,7 +21,9 @@ export function run(command,args,cwd,{capture=false,input,timeout=30*60*1000,env
 const hash40=value=>typeof value==='string'&&/^[a-f0-9]{40}$/.test(value);
 const hash64=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 export function validateInputs(inputs){
+    if(inputs.xml2Source)validateXml2Pin(inputs.xml2Source);
     if(inputs.variant){
+        if(!inputs.xml2Source)throw Error('Missing strict XML source identity');
         const variant=inputs.variant;
         if(variant.family!=='nexus-cachyos'||variant.sourceRepository!=='domsvoboda/nexus-runtime-cachyos'||variant.wineRepository!=='domsvoboda/nexus-wine-cachyos'||variant.prefixSchema!==1||JSON.stringify(variant.architectures)!=='["x86_64"]')throw Error('Unsupported runtime variant');
         for(const key of ['cachyosProton','cachyosWine','nexusProton','wine','xgameruntime'])if(!hash40(variant[key]))throw Error('Unpinned runtime variant '+key);
@@ -70,7 +73,7 @@ export async function verifySourceGraph({full=false,main=false}={}){
     if(git(repository,['status','--porcelain','--untracked-files=all']))throw Error('Proton source must be clean before preparation');
     const url=git(repository,['config','-f','.gitmodules','--get','submodule.wine.url']);
     if(url!==`https://github.com/${inputs.variant?.wineRepository??'domsvoboda/nexus-wine'}.git`)throw Error('Wrong Wine fork');
-    const graph={proton:head,wine:gitlink(repository,'wine'),fex:gitlink(repository,'FEX'),modules:{...inputs.modules}};
+    const graph={...(inputs.xml2Source?{xml2Source:inputs.xml2Source}:{}),proton:head,wine:gitlink(repository,'wine'),fex:gitlink(repository,'FEX'),modules:{...inputs.modules}};
     if(inputs.variant){
         if(graph.wine!==inputs.variant.wine)throw Error('Variant Wine source mismatch');
         for(const base of [inputs.variant.cachyosProton,inputs.variant.nexusProton])run('git',['merge-base','--is-ancestor',base,'HEAD'],repository);

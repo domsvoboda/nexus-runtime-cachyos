@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {prepareXml2Source,verifyXml2Source,xml2Directory} from './xml2-source.mjs';
 import {availableParallelism} from 'node:os';
 import {sourceModulePlan} from './source-module-plan.mjs';
 import {sourceInventory} from './ci/initialize-source.mjs';
@@ -25,11 +26,13 @@ if(target.name==='arm64'&&llvmMingwPin().sha256!==auxiliary.toolchain.sha256)thr
 const engine=sdkContainerOption(process.env.NEXUS_CONTAINER_ENGINE).split('=')[1],jobs=sdkBuildJobs(process.env.NEXUS_BUILD_JOBS??availableParallelism());
 const source=repository,wine=path.join(source,'wine'),shader=path.join(source,'vkd3d'),fex=path.join(source,'FEX');
 const stateFile=path.join(work,'prepared.json'),build=path.join(work,'sdk-build');
-let graph,name,epoch;
+let graph,name,epoch,xml2SourceState;
+const xml2Lock=path.join(wine,'dlls/xgameruntime/cmake/xml2.lock.json');
 if(!resume){
   ({graph}=await verifySourceGraph({full:true,main:true}));
   await fs.mkdir(work,{recursive:false});
   await fs.writeFile(path.join(work,'source-module-plan.json'),JSON.stringify({schema:1,...sourceModulePlan(sourceInventory(),inputs.variant?.family)},null,2)+'\n',{flag:'wx'});
+  if(inputs.xml2Source)xml2SourceState=await prepareXml2Source(wine,work,inputs.xml2Source,xml2Lock);
   name=(inputs.variant?'nexus-runtime-cachyos-11.0-experimental':'nexus-runtime-11.0-experimental')+target.suffix+'-g'+graph.proton.slice(0,8);
   epoch=run('git',['log','-1','--format=%ct'],source,{capture:true}).trim();
   const configure=await fs.readFile(path.join(shader,'configure.ac'),'utf8');
@@ -42,12 +45,14 @@ if(!resume){
   await fs.mkdir(build);
   run(path.join(source,'configure.sh'),sdkConfigureArgs({name,engine,sdk,arch:target.name,variant:inputs.variant?.family}),build,inputs.variant?{env:{...sourceEnvironment(),CFLAGS:'-O2 -march=nocona -mtune=core-avx2',RUSTFLAGS:'-Copt-level=3 -Ctarget-cpu=nocona'}}:{});
   const sdkConfiguration=captureSdkConfiguration(await fs.readFile(path.join(build,'Makefile'),'utf8'),{source,name,sdk,engine,arch:target.name,variant:inputs.variant?.family});
-  await fs.writeFile(stateFile,JSON.stringify({schema:1,graph,name,epoch,engine,arch:target.name,source,inputsSha256:lockHash,sdkConfiguration,...verifiedAux},null,2)+'\n',{flag:'wx'});
+  await fs.writeFile(stateFile,JSON.stringify({schema:1,graph,name,epoch,engine,arch:target.name,source,inputsSha256:lockHash,sdkConfiguration,xml2Source:xml2SourceState,...verifiedAux},null,2)+'\n',{flag:'wx'});
 }else{
   const state=await readJson(stateFile);
   ({graph,name,epoch}=state);
   if(state.schema!==1||state.source!==source||state.engine!==engine||(state.arch??'x86_64')!==target.name||state.inputsSha256!==lockHash||state.manifestSha256!==verifiedAux.manifestSha256||state.mediaSha256!==verifiedAux.mediaSha256)throw Error('Resume input mismatch');
   if(run('git',['rev-parse','HEAD'],source,{capture:true}).trim()!==graph.proton||run('git',['rev-parse','refs/remotes/origin/main'],source,{capture:true}).trim()!==graph.proton)throw Error('Resume requires the exact selected main source');
+  if(JSON.stringify(state.graph.xml2Source)!==JSON.stringify(inputs.xml2Source))throw Error('Prepared XML graph changed');
+  if(inputs.xml2Source){xml2SourceState=await verifyXml2Source(work,inputs.xml2Source,xml2Lock);if(JSON.stringify(state.xml2Source)!==JSON.stringify(xml2SourceState))throw Error('Prepared XML source changed');}
   verifyPreparedSdkConfiguration(await fs.readFile(path.join(build,'Makefile'),'utf8'),{source,name,sdk,engine,arch:target.name,variant:inputs.variant?.family},state.sdkConfiguration);
 }
 // Reject edits even on resume. Only the exact checksum-verified shader/FEX
@@ -70,7 +75,7 @@ for(const [file,expected]of Object.entries(inputs.shader.expectedSources))if(sha
 for(const [file,expected]of Object.entries(auxiliary.headers))if(sha256(await fs.readFile(path.join(wine,'include/nghttp2',file)))!==expected)throw Error('Prepared HTTP header mismatch');
 try{await fs.lstat(output);throw Error('Output already exists');}catch(error){if(error.code!=='ENOENT')throw error;}
 const redist=path.join(build,'redist-'+graph.proton.slice(0,8));
-for(const stage of sdkBuildPlan(build,epoch,jobs,redist,target.hostTools)){console.log(stage.name);run('make',stage.args,build,{timeout:stage.timeout});}
+for(const stage of sdkBuildPlan(build,epoch,jobs,redist,target.hostTools,inputs.xml2Source?path.join(work,xml2Directory):undefined)){console.log(stage.name);run('make',stage.args,build,{timeout:stage.timeout});}
 await collectRuntimeDependencySources(path.join(redist,'files'),work);
 await verifyAuxiliary(aux,inputs,target);
 await assembleRuntime({work,build,redist,source,wine,aux,output,name,inputs,graph,auxiliary,lockHash,target});

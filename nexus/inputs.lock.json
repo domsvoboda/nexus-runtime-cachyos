@@ -53,11 +53,18 @@
     "cachyosProton": "26827b131c93a1ef9e29f27e0260f1051fccbff5",
     "cachyosWine": "cd14106e4fc0f96006005b07985e49cc1517e9c0",
     "nexusProton": "a22a5197cc680f38eb8db222f78004cd98a884af",
-    "wine": "cfb8c831f37bf1196aae182de8cf4936e7184d01",
-    "xgameruntime": "455b1ba9c59984f9478af062fa1aec496bc58ccc",
+    "wine": "1b99cca2239076b857e2630bf5d0800b22e98376",
+    "xgameruntime": "65cb4f14274aac4c6300243dc94a55a713e1dbff",
     "architectures": [
       "x86_64"
     ],
     "prefixSchema": 1
+  },
+  "xml2Source": {
+    "repository": "ValveSoftware/wine",
+    "commit": "7fc704ef49c50e9702c9983a5250d5738697bb04",
+    "subtree": "libs/xml2",
+    "tree": "27d5326b87ecf1c4042507bb9937a98961f2de0a",
+    "lockSha256": "11f663dca158702915e528d80181e82f08d35008d732f3f6735718916c3800f2"
   }
 }

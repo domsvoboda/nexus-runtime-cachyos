@@ -39,11 +39,12 @@ export function verifyPreparedSdkConfiguration(text, options, state){
   if(createHash('sha256').update(text).digest('hex')!==state.sha256)throw Error('Prepared SDK configuration changed');
 }
 
-export function sdkBuildPlan(build, epoch, jobs = 4, redist, hostTools = 'x86_64') {
+export function sdkBuildPlan(build, epoch, jobs = 4, redist, hostTools = 'x86_64', xml2Source) {
   if (!path.isAbsolute(build) || !/^[0-9]+$/.test(epoch) || !['x86_64', 'aarch64'].includes(hostTools)) throw Error('Invalid SDK build inputs');
   if (redist !== undefined && (!path.isAbsolute(redist) || path.dirname(redist) !== build || !/^redist-[a-f0-9]{8}$/.test(path.basename(redist)))) throw Error('Invalid isolated redistribution path');
+  if(xml2Source!==undefined&&xml2Source!==path.join(path.dirname(build),'xgr-xml2-source'))throw Error('XML source must be the verified prepared directory');
   const count = sdkBuildJobs(jobs);
-  const common = [`-j${count}`, `J=${count}`, `SOURCE_DATE_EPOCH=${epoch}`];
+  const common = [`-j${count}`, `J=${count}`, `SOURCE_DATE_EPOCH=${epoch}`,...(xml2Source?[`NEXUS_XML2_SOURCE=${xml2Source}`]:[])];
   return [
     // Proton module64 does not depend on its host-tools stamp. A clean parallel
     // module build can otherwise launch a second WIDL make in the same tree.
