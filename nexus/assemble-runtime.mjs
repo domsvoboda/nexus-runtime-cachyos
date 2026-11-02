@@ -5,6 +5,7 @@ import {project,readJson,sha256} from './inputs.mjs';
 import {copySdkRedistribution,makeSdkLinksPortable} from './runtime-copy.mjs';
 import {targets} from './target.mjs';
 import {writeFamilyManifest} from './family-manifest.mjs';
+import {verifyXml2Source,xml2Directory} from './xml2-source.mjs';
 import {stageSdkNotices} from './sdk-notices.mjs';
 import {moduleCapabilities} from './module-capabilities.mjs';
 import {buildPackageRegistration} from './package-registration.mjs';
@@ -59,6 +60,10 @@ const notices=path.join(files,'share/doc/nexus-runtime');await fs.mkdir(notices,
 await fs.copyFile(path.join(source,'FEX/LICENSE'),path.join(notices,'FEX-LICENSE'),fs.constants.COPYFILE_EXCL);
 for(const [name,sourceFile] of [['runtime-compat-LICENSE',path.join(project,'LICENSE')],['NOTICE',path.join(project,'NOTICE')],['nghttp2-LICENSE',path.join(aux,'components/nghttp2-LICENSE')],['Wine-LICENSE',path.join(wine,'COPYING.LIB')],['TomCrypt-LICENSE',path.join(wine,'libs/tomcrypt/LICENSE')],['xgameruntime-LICENSE',path.join(wine,'dlls/xgameruntime/LICENSE')],['DXVK-LICENSE',path.join(source,'dxvk/LICENSE')],['VKD3D-LICENSE',path.join(source,'vkd3d/COPYING')],['FFmpeg-COPYING.LGPLv2.1',path.join(aux,'media/ffmpeg-'+media.version+'/COPYING.LGPLv2.1')]])await fs.copyFile(sourceFile,path.join(notices,name));
 await stageSdkNotices(runtime,project);
+if(inputs.xml2Source){
+ await verifyXml2Source(work,inputs.xml2Source,path.join(wine,'dlls/xgameruntime/cmake/xml2.lock.json'));
+ await fs.copyFile(path.join(work,xml2Directory,'COPYING'),path.join(notices,'XGR-XML2-COPYING'),fs.constants.COPYFILE_EXCL);
+}
 const metadata={schema:1,status:'experimental',description:inputs.variant?'Experimental Nexus runtime integrating pinned CachyOS Proton sources.':'Independent Nexus runtime built from pinned official Proton Experimental sources.',baseProtonCommit:inputs.upstream.proton,patchState:graph.proton,sourceLockSha256:lockHash,requiresBackendVersion:proton.requiresBackendVersion,components,runtimeCompatibility:auxiliary.compatibility,features:['cloud-saves-pr28','xodus-tcp-bridge-v1','package-locale','xuser-contract-v1','xuser-windows-account-metadata-v1','wine-winhttp-http2-v1','nghttp2-v1','winrt-json-v1','xasync-provider-contract-v1','xtaskqueue-lifecycle-v1','playfab-package-save-folder-v1','xstore-entitlements-v1','xstore-durable-license-v1','xstore-related-discovery-v1','xpackage-content-v1','xstore-package-license-v1','hlsl-state-keywords-v1','appmodel-package-identity-v1','appstate-registration-v1','appconstrained-registration-v1','xtaskqueue-repeat-termination-v1','xgame-relaunch-current-user-v1','dxvk-constant-compare-v1'].filter(feature=>target.primaryPe==='x86_64'||feature!=='hlsl-state-keywords-v1')};
 metadata.sourceGraph=graph;
 if(inputs.variant)metadata.variant=inputs.variant;

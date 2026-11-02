@@ -4,6 +4,7 @@ import {hasCompleteHttpCoverage} from './http-coverage.mjs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {project,readJson,sourceEnvironment} from '../inputs.mjs';
+import {verifyXml2Source,xml2Directory} from '../xml2-source.mjs';
 import {verifySdkNotices} from '../sdk-notices.mjs';
 import {fileHash,treeHash,assertPortable,validateGateResults} from './provenance.mjs';
 import {prepareValidationTools,validationProcessOutput} from './validation-tools.mjs';
@@ -18,6 +19,10 @@ if(fixtureProof.sdk!==built.inputs.sdk||JSON.stringify(fixtureProof.sourceGraph)
 for(const [file,expected]of Object.entries(fixtureProof.hashes))if(await fileHash(fixtures+'/'+file)!==expected)throw Error('Changed test fixture');
 // Verify already assembled notices without mutating the inventoried runtime.
 await verifySdkNotices(runtime,project);
+if(built.inputs.xml2Source){
+ await verifyXml2Source(built.prepared,built.inputs.xml2Source,built.source+'/wine/dlls/xgameruntime/cmake/xml2.lock.json');
+ if(await fileHash(files+'/share/doc/nexus-runtime/XGR-XML2-COPYING')!==await fileHash(path.join(built.prepared,xml2Directory,'COPYING')))throw Error('Strict XML notice changed');
+}
 await assertPortable(runtime);
 const proof={schema:1,scope:'exact coherent runtime, synthetic offline gates only',realGameTest:false,realAccountTest:false,realCloudTest:false,stableApproved:false,graph:built.graph,runtime,builtSha256:await fileHash(output+'/built.json'),treeSha256:await treeHash(runtime),fixtureProofSha256:await fileHash(fixtures+'/fixtures.json'),results:[],bindings:{}};
 const tools=await prepareValidationTools(files,work+'/candidate-tools');

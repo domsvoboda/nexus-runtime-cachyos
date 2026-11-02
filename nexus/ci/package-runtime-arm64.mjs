@@ -6,6 +6,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {readJson,sourceEnvironment} from '../inputs.mjs';
 import {fileHash,treeHash,assertPortable} from './provenance.mjs';
+import {verifyXml2Source} from '../xml2-source.mjs';
 import {sourceArchiveArgs} from './source-archive.mjs';
 const [outputArg,validationArg]=process.argv.slice(2);
 if(process.env.GITHUB_REF!=='refs/heads/main'||!/^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPOSITORY||'')||!/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA||'')||!/^\d+$/.test(process.env.GITHUB_RUN_ID||''))throw Error('Packaging requires an exact main GitHub runtime build');
@@ -19,6 +20,10 @@ if(proof.results.length!==gates.length||proof.results.some((r,i)=>r.name!==gates
 for(const r of proof.results)if(!r.log.startsWith(validation+'/')||await fileHash(r.log)!==r.sha256)throw Error('Changed native log');
 await assertPortable(built.runtime);
 if(execFileSync('git',['rev-parse','HEAD'],{cwd:built.source,encoding:'utf8'}).trim()!==process.env.GITHUB_SHA)throw Error('Corresponding source moved');
+if(built.inputs.xml2Source){
+ if(JSON.stringify(built.graph.xml2Source)!==JSON.stringify(built.inputs.xml2Source))throw Error('Strict XML source graph changed');
+ await verifyXml2Source(built.prepared,built.inputs.xml2Source,built.source+'/wine/dlls/xgameruntime/cmake/xml2.lock.json');
+}
 const media=await readJson(built.aux+'/media/media-manifest.json');
 if(await fileHash(built.aux+'/media/ffmpeg-'+media.version+'.tar.xz')!==media.sourceSha256)throw Error('Corresponding FFmpeg source changed');
 const env={...sourceEnvironment(),XZ_OPT:'-T2'};
@@ -26,9 +31,10 @@ function tar(args){execFileSync('tar',args,{env,stdio:'inherit',timeout:20*60*10
 const binary=built.name+'-aarch64.tar.xz',source=built.name+'-source.tar.xz';
 for(const name of [binary,source,'candidate.json'])try{await fs.access(output+'/'+name);throw Error('Do not replace an existing candidate');}catch(e){if(e.code!=='ENOENT')throw e;}
 tar(['-cJf',output+'/'+binary,'-C',output,built.name]);
-tar(sourceArchiveArgs(output+'/'+source,built.source,built.aux,built.prepared,media.version));
+tar(sourceArchiveArgs(output+'/'+source,built.source,built.aux,built.prepared,media.version,Boolean(built.inputs.xml2Source)));
 const listing=execFileSync('tar',['-tJf',output+'/'+source],{encoding:'utf8',maxBuffer:32*1024*1024,timeout:120000}).trim().split('\n');
 if(listing.some(n=>path.isAbsolute(n)||n.split('/').some(v=>v==='..'||v==='.git'))||!listing.includes('source/.gitmodules')||!listing.includes('source/wine/dlls/xgameruntime/CMakeLists.txt')||!listing.includes('source/nexus/licenses/GCC-runtime-copyright'))throw Error('Corresponding source archive incomplete');
+if(built.inputs.xml2Source&&!['xgr-xml2-source/parser.c','xgr-xml2-source/COPYING','xgr-xml2-source/AUTHORS','xgr-xml2-source.json'].every(name=>listing.includes(name)))throw Error('Strict XML corresponding source missing');
 const files=[];
 for(const name of [binary,source]){
   const checksum=name.replace(/\.tar\.xz$/,'.sha512sum');

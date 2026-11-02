@@ -96,6 +96,34 @@ def unpack(archive, destination):
             process.wait()
 
 
+def verify_xml_source(source, work, pin):
+    if pin is None:
+        return
+    if (pin.get('repository') != 'ValveSoftware/wine'
+            or pin.get('commit') != '7fc704ef49c50e9702c9983a5250d5738697bb04'
+            or pin.get('subtree') != 'libs/xml2'
+            or pin.get('tree') != '27d5326b87ecf1c4042507bb9937a98961f2de0a'
+            or read(source / 'nexus/inputs.lock.json').get('xml2Source') != pin):
+        raise ValueError('Wrong strict XML source identity')
+    lock = source / 'wine/dlls/xgameruntime/cmake/xml2.lock.json'
+    if digest(lock) != pin.get('lockSha256'):
+        raise ValueError('Changed strict XML lock')
+    files = read(lock)['files']
+    metadata = read(work / 'xgr-xml2-source.json')
+    if (len(files) != 99 or metadata.get('schema') != 1 or metadata.get('identity') != pin
+            or metadata.get('files') != files
+            or metadata.get('licenses') != {name: files[name] for name in ['COPYING', 'AUTHORS']}):
+        raise ValueError('Changed strict XML provenance')
+    directory = work / 'xgr-xml2-source'
+    if directory.is_symlink() or not directory.is_dir() or directory.resolve() != directory:
+        raise ValueError('Redirected strict XML source')
+    paths = list(directory.rglob('*'))
+    if (any(p.is_symlink() or not (p.is_dir() or p.is_file()) for p in paths)
+            or {str(p.relative_to(directory)) for p in paths if p.is_file()} != set(files)
+            or any(digest(directory / name) != expected for name, expected in files.items())):
+        raise ValueError('Changed strict XML source files')
+
+
 def create(output, fixtures, checkpoint):
     sha = context()
     built = read(output / 'built.json')
@@ -113,6 +141,10 @@ def create(output, fixtures, checkpoint):
         raise ValueError('Checkpoint fixtures differ from runtime')
     if (output / 'candidate.json').exists():
         raise ValueError('Checkpoint is for unvalidated builds only')
+    pin = built.get('inputs', {}).get('xml2Source')
+    if built['graph'].get('xml2Source') != pin:
+        raise ValueError('Changed strict XML graph')
+    verify_xml_source(source, temp / 'nexus-work', pin)
     checkpoint.mkdir()
     pack(source, checkpoint / 'source.tar.zst', ['.'])
     pack(output, checkpoint / 'output.tar.zst', ['.'])
@@ -120,11 +152,14 @@ def create(output, fixtures, checkpoint):
     media = read(temp / 'nexus-auxiliary/media/media-manifest.json')
     if not re.fullmatch(r'\d+\.\d+\.\d+', media['version']):
         raise ValueError('Invalid media source version')
-    pack(temp, checkpoint / 'support.tar.zst', [
+    support = [
         'nexus-auxiliary/auxiliary.json', 'nexus-auxiliary/components', 'nexus-auxiliary/nghttp2-src',
         'nexus-auxiliary/media/media-manifest.json', 'nexus-auxiliary/media/stage',
         'nexus-auxiliary/media/ffmpeg-' + media['version'] + '.tar.xz',
-        'nexus-work/prepared.json', 'nexus-work/source-module-plan.json', 'nexus-work/runtime-dependency-sources'])
+        'nexus-work/prepared.json', 'nexus-work/source-module-plan.json', 'nexus-work/runtime-dependency-sources']
+    if pin is not None:
+        support += ['nexus-work/xgr-xml2-source', 'nexus-work/xgr-xml2-source.json']
+    pack(temp, checkpoint / 'support.tar.zst', support)
     write_new(checkpoint / 'checkpoint.json', {
         'schema': 1, 'kind': 'unvalidated-runtime-checkpoint', 'commit': sha,
         'architecture': built['metadata'].get('targetArchitecture', 'x86_64'),
@@ -165,6 +200,10 @@ def restore(checkpoint, architecture):
     built = read(output / 'built.json')
     if built['graph'] != info['sourceGraph'] or built['graph']['proton'] != sha:
         raise ValueError('Restored source graph mismatch')
+    pin = built.get('inputs', {}).get('xml2Source')
+    if built['graph'].get('xml2Source') != pin:
+        raise ValueError('Changed strict XML graph')
+    verify_xml_source(source, temp / 'nexus-work', pin)
     # Relocate paths only; source graph, SDK pins and every binary remain unchanged.
     name = built['name']
     if name != runtime_name(sha, architecture):

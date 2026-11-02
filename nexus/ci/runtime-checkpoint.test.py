@@ -106,6 +106,69 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Unreviewed checkpoint architecture'):
             cp.runtime_name(self.sha, 'arm64')
 
+    def enable_xml_fixture(self):
+        import hashlib
+        names = ['parser.c', 'COPYING', 'AUTHORS'] + ['file-%02d' % n for n in range(96)]
+        files = {name: hashlib.sha256(('fixture:' + name).encode()).hexdigest() for name in names}
+        lock = json.dumps({'files': files}).encode()
+        pin = {'repository': 'ValveSoftware/wine', 'commit': '7fc704ef49c50e9702c9983a5250d5738697bb04',
+               'subtree': 'libs/xml2', 'tree': '27d5326b87ecf1c4042507bb9937a98961f2de0a',
+               'lockSha256': hashlib.sha256(lock).hexdigest()}
+        target = self.source / 'wine/dlls/xgameruntime/cmake/xml2.lock.json'
+        target.parent.mkdir(parents=True)
+        target.write_bytes(lock)
+        (self.source / 'nexus').mkdir()
+        (self.source / 'nexus/inputs.lock.json').write_text(json.dumps({'xml2Source': pin}))
+        subprocess.run(['git', 'add', '.'], cwd=self.source, check=True)
+        subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'XML fixture'], cwd=self.source, check=True)
+        self.sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.source, text=True).strip()
+        os.environ['GITHUB_SHA'] = self.sha
+        name = cp.runtime_name(self.sha, 'x86_64')
+        runtime = self.output / name
+        self.runtime.rename(runtime)
+        self.runtime, self.runtime_name, self.binary = runtime, name, runtime / 'files/bin/wine'
+        self.built.update(name=name, runtime=str(runtime), inputs={'xml2Source': pin}, graph={'proton': self.sha, 'xml2Source': pin})
+        (self.output / 'built.json').write_text(json.dumps(self.built))
+        (self.fixtures / 'fixtures.json').write_text(json.dumps({'sourceGraph': self.built['graph']}))
+        work = self.temp / 'nexus-work'
+        (work / 'xgr-xml2-source').mkdir()
+        for name in names:
+            (work / 'xgr-xml2-source' / name).write_text('fixture:' + name)
+        (work / 'xgr-xml2-source.json').write_text(json.dumps({'schema': 1, 'identity': pin, 'files': files,
+            'licenses': {name: files[name] for name in ['COPYING', 'AUTHORS']}}))
+        return pin, work
+
+    def test_strict_xml_source_roundtrip_preserves_files_identity_and_licenses(self):
+        pin, work = self.enable_xml_fixture()
+        cp.create(self.output, self.fixtures, self.checkpoint)
+        source, temp = self.destination()
+        with patch.dict(os.environ, {'GITHUB_WORKSPACE': str(source), 'RUNNER_TEMP': str(temp)}):
+            cp.restore(self.checkpoint, 'x86_64')
+        cp.verify_xml_source(source, temp / 'nexus-work', pin)
+        for name in ['parser.c', 'COPYING', 'AUTHORS']:
+            self.assertEqual((temp / 'nexus-work/xgr-xml2-source' / name).read_bytes(), (work / 'xgr-xml2-source' / name).read_bytes())
+
+    def test_strict_xml_changed_missing_extra_and_redirected_files_rejected(self):
+        pin, work = self.enable_xml_fixture()
+        file = work / 'xgr-xml2-source/parser.c'
+        original = file.read_bytes()
+        file.write_bytes(b'changed parser')
+        with self.assertRaises(ValueError):
+            cp.verify_xml_source(self.source, work, pin)
+        file.unlink()
+        with self.assertRaises(ValueError):
+            cp.verify_xml_source(self.source, work, pin)
+        file.write_bytes(original)
+        extra = work / 'xgr-xml2-source/extra'
+        extra.write_text('new file')
+        with self.assertRaises(ValueError):
+            cp.verify_xml_source(self.source, work, pin)
+        extra.unlink()
+        file.unlink()
+        file.symlink_to('/etc/passwd')
+        with self.assertRaises(ValueError):
+            cp.verify_xml_source(self.source, work, pin)
+
     def test_corrupt_archive_rejected_before_writes(self):
         cp.create(self.output, self.fixtures, self.checkpoint)
         with (self.checkpoint / 'output.tar.zst').open('ab') as f:
