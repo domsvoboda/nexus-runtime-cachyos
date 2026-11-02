@@ -1,9 +1,11 @@
-Nexus runtime
--------------
+Nexus Runtime CachyOS
+---------------------
 
-This fork is an independent, unofficial integration for Xodus Nexus, not an
-official Valve or Xodus distribution. See [Nexus build instructions](nexus/README.md)
-for the pinned three-fork build and Experimental limitations.
+This experimental CachyOS-derived Proton integration is for Xodus Nexus. It is
+independent and unofficial, with no proven performance or compatibility improvement
+over the existing Nexus runtime. No installable variant is available yet. See
+[Nexus build instructions](nexus/README.md) for pinned sources, x86_64 requirements
+and both Windows ABIs. The upstream Proton documentation follows.
 
 Introduction
 ------------
