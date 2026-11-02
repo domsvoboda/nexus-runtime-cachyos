@@ -16,12 +16,12 @@ test('cache is bounded and namespace depends on immutable SDK, not source revisi
   assert.throws(()=>cachePlan('latest','1'.repeat(40)));assert.throws(()=>cachePlan(sdk,'main'));
 });
 test('family caches reuse compiler entries across commits and failed build attempts',()=>{
-  const identity={family:'nexus-cachyos',repository:'domsvoboda/nexus-runtime-cachyos',attempt:1};
+  const identity={family:'nexus-cachyos',repository:'domsvoboda/nexus-runtime-cachyos',runId:'123',attempt:1};
   const first=cachePlan(sdk,'1'.repeat(40),identity),retry=cachePlan(sdk,'1'.repeat(40),{...identity,attempt:2});
-  const next=cachePlan(sdk,'2'.repeat(40),identity),other=cachePlan(sdk,'1'.repeat(40),{family:'nexus',repository:'domsvoboda/nexus-runtime',attempt:1});
+  const next=cachePlan(sdk,'2'.repeat(40),identity),other=cachePlan(sdk,'1'.repeat(40),{family:'nexus',repository:'domsvoboda/nexus-runtime',runId:'123',attempt:1});
   assert.equal(first.namespace,retry.namespace);assert.equal(first.namespace,next.namespace);assert.notEqual(first.namespace,other.namespace);
-  assert.notEqual(first.key,retry.key);assert.ok(first.key.startsWith(retry.restorePrefixes[0]));assert.ok(next.key.startsWith(first.restorePrefixes[1]));
-  for(const change of [{family:'arbitrary'},{repository:'untrusted/runtime'},{attempt:0},{attempt:1.5}])assert.throws(()=>cachePlan(sdk,'1'.repeat(40),{...identity,...change}));
+  assert.notEqual(first.key,retry.key);assert.notEqual(first.key,cachePlan(sdk,'1'.repeat(40),{...identity,runId:'124'}).key);assert.ok(first.key.startsWith(retry.restorePrefixes[0]));assert.ok(next.key.startsWith(first.restorePrefixes[1]));
+  for(const change of [{runId:'0'},{runId:123},{family:'arbitrary'},{repository:'untrusted/runtime'},{attempt:0},{attempt:1.5}])assert.throws(()=>cachePlan(sdk,'1'.repeat(40),{...identity,...change}));
 });
 test('source ancestry and checkpoint producer are preserved across validation retries',()=>{
   const source=fs.readFileSync(path.join(repository,'.github/workflows/nexus-source.yml'),'utf8');
