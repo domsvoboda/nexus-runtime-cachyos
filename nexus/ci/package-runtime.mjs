@@ -2,15 +2,18 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {readJson,sourceEnvironment} from '../inputs.mjs';
+import {readJson,sourceEnvironment,verifyInputs} from '../inputs.mjs';
 import {fileHash,treeHash,assertPortable,validateGateResults} from './provenance.mjs';
 import {sourceArchiveArgs} from './source-archive.mjs';
+import {distributionIdentity,distributionName} from './distribution-identity.mjs';
+const {inputs:packagingInputs}=await verifyInputs();
+const identity=distributionIdentity(packagingInputs);
 const [outputArg,validationArg]=process.argv.slice(2);
-if(process.env.GITHUB_REF!=='refs/heads/main'||process.env.GITHUB_REPOSITORY!=='domsvoboda/nexus-runtime'||!/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA||'')||!/^\d+$/.test(process.env.GITHUB_RUN_ID||''))throw Error('Packaging requires an exact main GitHub runtime build');
+if(process.env.GITHUB_REF!=='refs/heads/main'||process.env.GITHUB_REPOSITORY!==identity.repository||!/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA||'')||!/^\d+$/.test(process.env.GITHUB_RUN_ID||''))throw Error('Packaging requires an exact main GitHub runtime build');
 if(!outputArg||!validationArg||process.argv.length!==4)throw Error('BUILD_OUTPUT VALIDATION required');
 const output=await fs.realpath(outputArg),validation=await fs.realpath(validationArg);
 const built=await readJson(output+'/built.json'),proof=await readJson(validation+'/results.json');
-if(built.diagnosticOnly||built.promotable===false||built.metadata.diagnosticOnly||built.metadata.promotable===false||built.graph.proton!==process.env.GITHUB_SHA||!/^nexus-runtime-11\.0-experimental-g[a-f0-9]{8}$/.test(built.name)||path.dirname(built.runtime)!==output||path.basename(built.runtime)!==built.name)throw Error('Not the exact main distribution source');
+if(built.diagnosticOnly||built.promotable===false||built.metadata.diagnosticOnly||built.metadata.promotable===false||built.graph.proton!==process.env.GITHUB_SHA||built.name!==distributionName(packagingInputs,process.env.GITHUB_SHA)||path.dirname(built.runtime)!==output||path.basename(built.runtime)!==built.name)throw Error('Not the exact main distribution source');
 if(proof.passed!==true||proof.stableApproved!==false||proof.realGameTest!==false||proof.realAccountTest!==false||proof.realCloudTest!==false||proof.builtSha256!==await fileHash(output+'/built.json')||proof.treeSha256!==await treeHash(built.runtime)||JSON.stringify(proof.graph)!==JSON.stringify(built.graph))throw Error('Unvalidated or changed runtime');
 validateGateResults(proof.results);await assertPortable(built.runtime);
 for(const r of proof.results){if(!r.log.startsWith(validation+'/')||await fileHash(r.log)!==r.sha256)throw Error('Changed native log');}
@@ -27,7 +30,7 @@ for(const name of [binary,source,'candidate.json'])try{await fs.access(output+'/
 tar(['-cJf',output+'/'+binary,'-C',output,built.name]);
 tar(sourceArchiveArgs(output+'/'+source,built.source,built.aux,built.prepared,media.version));
 const listing=execFileSync('tar',['-tJf',output+'/'+source],{encoding:'utf8',maxBuffer:32*1024*1024,timeout:120000}).trim().split('\n');
-if(listing.some(n=>path.isAbsolute(n)||n.split('/').some(v=>v==='..'||v==='.git'))||!listing.includes('source/.gitmodules')||!listing.includes('source/wine/dlls/xgameruntime/CMakeLists.txt')||!listing.includes('source/nexus/licenses/GCC-runtime-copyright'))throw Error('Corresponding source archive incomplete');
+if(listing.some(n=>path.isAbsolute(n)||n.split('/').some(v=>v==='..'||v==='.git'))||!listing.includes('source/.gitmodules')||!listing.includes('source/wine/dlls/xgameruntime/CMakeLists.txt')||!listing.includes('source/nexus/licenses/GCC-runtime-copyright')||!listing.includes('source-module-plan.json'))throw Error('Corresponding source archive incomplete');
 const files=[];
 for(const name of [binary,source]){
   const checksum=name.replace(/\.tar\.xz$/,'.sha512sum');

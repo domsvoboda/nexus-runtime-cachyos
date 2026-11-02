@@ -31,7 +31,8 @@ class CheckpointTests(unittest.TestCase):
         self.output, self.fixtures = self.temp / 'nexus-output', self.temp / 'nexus-fixtures'
         self.output.mkdir()
         self.fixtures.mkdir()
-        self.runtime = self.output / 'runtime'
+        self.runtime_name = cp.distribution_identity()[1] + '-g' + self.sha[:8]
+        self.runtime = self.output / self.runtime_name
         (self.runtime / 'files/bin').mkdir(parents=True)
         self.binary = self.runtime / 'files/bin/wine'
         self.binary.write_bytes(b'unchanged synthetic executable')
@@ -51,12 +52,12 @@ class CheckpointTests(unittest.TestCase):
         (prepared / 'runtime-dependency-sources').mkdir(parents=True)
         (prepared / 'prepared.json').write_text('{}')
         self.built = {'graph': {'proton': self.sha}, 'source': str(self.source), 'runtime': str(self.runtime),
-                      'aux': str(aux), 'prepared': str(prepared), 'metadata': {}, 'name': 'runtime'}
+                      'aux': str(aux), 'prepared': str(prepared), 'metadata': {}, 'name': self.runtime_name}
         (self.output / 'built.json').write_text(json.dumps(self.built))
         (self.fixtures / 'fixtures.json').write_text(json.dumps({'sourceGraph': self.built['graph']}))
         (self.fixtures / 'probe.exe').write_bytes(b'unchanged fixture')
         self.checkpoint = self.root / 'checkpoint'
-        self.env = patch.dict(os.environ, {'GITHUB_REPOSITORY': 'domsvoboda/nexus-runtime', 'GITHUB_REF': 'refs/heads/main',
+        self.env = patch.dict(os.environ, {'GITHUB_REPOSITORY': cp.distribution_identity()[0], 'GITHUB_REF': 'refs/heads/main',
                  'GITHUB_SHA': self.sha, 'GITHUB_WORKSPACE': str(self.source), 'RUNNER_TEMP': str(self.temp)})
         self.env.start()
         self.addCleanup(self.env.stop)
@@ -82,11 +83,11 @@ class CheckpointTests(unittest.TestCase):
                 temp.mkdir()
                 with patch.dict(os.environ, {'GITHUB_WORKSPACE': str(source), 'RUNNER_TEMP': str(temp)}):
                     cp.restore(bundle, arch)
-                restored = temp / 'nexus-output/runtime/files/bin/wine'
+                restored = temp / 'nexus-output' / self.runtime_name / 'files/bin/wine'
                 self.assertEqual(restored.read_bytes(), self.binary.read_bytes())
                 self.assertEqual(restored.stat().st_mode & 0o777, 0o755)
                 self.assertEqual(os.readlink(restored.with_name('wine64')), 'wine')
-                self.assertEqual(os.readlink(temp / 'nexus-output/runtime/files/share/default_pfx/dosdevices/z:'), '/')
+                self.assertEqual(os.readlink(temp / 'nexus-output' / self.runtime_name / 'files/share/default_pfx/dosdevices/z:'), '/')
                 self.assertEqual(json.loads((temp / 'nexus-output/built.json').read_text())['source'], str(source))
                 self.assertEqual(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source), (self.sha+'\n').encode())
                 self.assertEqual((temp / 'nexus-fixtures/probe.exe').read_bytes(), b'unchanged fixture')
@@ -113,6 +114,9 @@ class CheckpointTests(unittest.TestCase):
 
     def test_fork_context_and_unsafe_archive_members_rejected(self):
         with patch.dict(os.environ, {'GITHUB_REPOSITORY': 'fork/nexus-runtime'}):
+            with self.assertRaises(ValueError):
+                cp.context()
+        with patch.dict(os.environ, {'GITHUB_REPOSITORY': 'domsvoboda/nexus-runtime'}):
             with self.assertRaises(ValueError):
                 cp.context()
         for name in ['../escape', '/absolute', '.git/config', 'runtime/files/share/default_pfx/dosdevices/z:/escape']:

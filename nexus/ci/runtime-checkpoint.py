@@ -20,9 +20,21 @@ def read(p):
     return json.loads(p.read_text())
 
 
+def distribution_identity():
+    inputs = read(Path(__file__).resolve().parents[1] / 'inputs.lock.json')
+    variant = inputs.get('variant')
+    if variant is None:
+        return 'domsvoboda/nexus-runtime', 'nexus-runtime-11.0-experimental'
+    if (variant.get('family') != 'nexus-cachyos'
+            or variant.get('sourceRepository') != 'domsvoboda/nexus-runtime-cachyos'
+            or variant.get('wineRepository') != 'domsvoboda/nexus-wine-cachyos'):
+        raise ValueError('Untrusted pinned runtime variant')
+    return 'domsvoboda/nexus-runtime-cachyos', 'nexus-runtime-cachyos-11.0-experimental'
+
+
 def context():
     sha = os.environ.get('GITHUB_SHA', '')
-    if (os.environ.get('GITHUB_REPOSITORY') != 'domsvoboda/nexus-runtime'
+    if (os.environ.get('GITHUB_REPOSITORY') != distribution_identity()[0]
             or os.environ.get('GITHUB_REF') != 'refs/heads/main'
             or not re.fullmatch('[0-9a-f]{40}', sha)):
         raise ValueError('Checkpoint requires the exact main workflow context')
@@ -146,7 +158,7 @@ def restore(checkpoint, architecture):
         raise ValueError('Restored source graph mismatch')
     # Relocate paths only; source graph, SDK pins and every binary remain unchanged.
     name = built['name']
-    if '/' in name or name in ['', '.', '..']:
+    if name != distribution_identity()[1] + '-g' + sha[:8]:
         raise ValueError('Invalid runtime directory name')
     built.update(source=str(source), runtime=str(output / name), aux=str(temp / 'nexus-auxiliary'),
                  prepared=str(temp / 'nexus-work'))
