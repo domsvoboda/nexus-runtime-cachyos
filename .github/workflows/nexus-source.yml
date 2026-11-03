@@ -49,3 +49,4 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_XGR_COMMIT"
           printf 'Verified XGameRuntime checkout: %s\n' "$EXPECTED_XGR_COMMIT" >> "$GITHUB_STEP_SUMMARY"
           node --test scripts/test-policy.test.mjs scripts/test-store-context.test.mjs scripts/test-source-only.test.mjs scripts/test-xml2-source.test.mjs
+          git diff --check
