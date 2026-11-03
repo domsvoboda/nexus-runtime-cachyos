@@ -57,6 +57,14 @@ class CheckpointTests(unittest.TestCase):
         (self.output / 'built.json').write_text(json.dumps(self.built))
         (self.fixtures / 'fixtures.json').write_text(json.dumps({'sourceGraph': self.built['graph']}))
         (self.fixtures / 'probe.exe').write_bytes(b'unchanged fixture')
+        self.waiter_payloads = {}
+        for abi in ['win64', 'win32']:
+            relative = abi + '/bin/nexus_taskqueue-composite-waiters.exe'
+            payload = ('synthetic waiter fixture ' + abi).encode()
+            file = self.fixtures / relative
+            file.parent.mkdir(parents=True)
+            file.write_bytes(payload)
+            self.waiter_payloads[relative] = payload
         self.checkpoint = self.root / 'checkpoint'
         self.env = patch.dict(os.environ, {'GITHUB_REPOSITORY': cp.distribution_identity()[0], 'GITHUB_REF': 'refs/heads/main',
                  'GITHUB_SHA': self.sha, 'GITHUB_RUN_ID': '123', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_WORKSPACE': str(self.source), 'RUNNER_TEMP': str(self.temp)})
@@ -100,6 +108,8 @@ class CheckpointTests(unittest.TestCase):
                 self.assertEqual(json.loads((temp / 'nexus-output/built.json').read_text())['source'], str(source))
                 self.assertEqual(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source), (self.sha+'\n').encode())
                 self.assertEqual((temp / 'nexus-fixtures/probe.exe').read_bytes(), b'unchanged fixture')
+                for relative, payload in self.waiter_payloads.items():
+                    self.assertEqual((temp / 'nexus-fixtures' / relative).read_bytes(), payload)
                 self.assertEqual((temp / 'nexus-work/source-module-plan.json').read_text(), '{"required":["wine"],"excluded":["zluda-libs/rocm-systems"]}')
 
     def test_cachyos_arm_checkpoint_is_not_enabled_by_default_arm_support(self):
