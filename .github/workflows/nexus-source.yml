@@ -1,0 +1,52 @@
+name: Nexus Proton source checks
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'fix/**']
+  pull_request:
+    branches: [main, develop]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate workflow syntax and context availability
+        run: |
+          curl --fail --location --retry 2 --max-time 120 https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          printf '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  %s/actionlint.tar.gz\n' "$RUNNER_TEMP" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/nexus-source.yml .github/workflows/nexus-runtime.yml .github/workflows/nexus-runtime-arm64.yml
+      - name: Install bounded source-test tools
+        timeout-minutes: 12
+        run: |
+          sudo "$(command -v node)" nexus/ci/ubuntu-mirror.mjs
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 install -y --no-install-recommends python3 zstd cmake make rsync gcc g++ gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686
+      - run: node nexus/check-source.mjs
+      - run: node --test nexus/*.test.mjs nexus/tests/*.test.mjs nexus/ci/*.test.mjs nexus/runtime-compat/*.test.mjs
+      - run: git diff --check
+      - name: Resolve the validated pinned XGameRuntime source
+        id: xgr-pin
+        run: node nexus/ci/xgr-source-pin.mjs
+      - name: Check out the exact dependency for complete source contracts
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.xgr-pin.outputs.repository }}
+          ref: ${{ steps.xgr-pin.outputs.commit }}
+          path: pinned-xgr-source
+      - name: Require all pinned XGameRuntime source contracts
+        working-directory: pinned-xgr-source
+        env:
+          EXPECTED_XGR_COMMIT: ${{ steps.xgr-pin.outputs.commit }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_XGR_COMMIT"
+          printf 'Verified XGameRuntime checkout: %s\n' "$EXPECTED_XGR_COMMIT" >> "$GITHUB_STEP_SUMMARY"
+          node --test scripts/test-policy.test.mjs scripts/test-store-context.test.mjs scripts/test-source-only.test.mjs scripts/test-xml2-source.test.mjs
+          git diff --check

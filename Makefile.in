@@ -392,6 +392,22 @@ $(eval $(call rules-meson,gst_good,x86_64,unix))
 $(eval $(call rules-meson,gst_good,aarch64,unix))
 
 ##
+## gst-plugins-ugly (LGPL ASF demuxer, no GPL dependencies)
+##
+
+GST_UGLY_MESON_ARGS := \
+	-Dauto_features=disabled \
+	-Dasfdemux=enabled \
+	-Dgpl=disabled
+
+GST_UGLY_DEPENDS = gst_orc gstreamer gst_base
+
+$(eval $(call rules-source,gst_ugly,$(SRCDIR)/gstreamer/subprojects/gst-plugins-ugly/))
+$(eval $(call rules-meson,gst_ugly,i386,unix))
+$(eval $(call rules-meson,gst_ugly,x86_64,unix))
+$(eval $(call rules-meson,gst_ugly,aarch64,unix))
+
+##
 ## gst-plugins-bad
 ##
 
@@ -1223,6 +1239,46 @@ $(OBJ)/.vkd3d-i386-post-build: $(OBJ)/.wine-$(HOST_ARCH)-tools
 	cp $(VKD3D_i386_DST)/bin/libvkd3d-utils-1.dll $(VKD3D_i386_LIBDIR)/vkd3d/i386-windows
 	touch $@
 
+# ARM64 builds the pinned vkd3d as one ARM64X module, like DXVK, so the ARM64X
+# d3dcompiler links the same vkd3d-shader as x86_64 rather than Wine's bundled
+# copy. config.sub rejects arm64ec-w64-mingw32; the later --host wins.
+VKD3D_arm64ec_LIBDIR = $(VKD3D_arm64ec_DST)/lib
+VKD3D_arm64ec_AUTOCONF_ARGS = --host=aarch64-w64-mingw32
+
+$(eval $(call rules-autoconf,vkd3d,arm64ec,windows))
+
+# rules-autoconf has no per-architecture flags; the later assignment wins in env.
+VKD3D_arm64ec_ENV += \
+  CFLAGS="$(VKD3D_arm64ec_INCFLAGS) $(VKD3D_CFLAGS) $(arm64ec_CFLAGS) $(CFLAGS) -marm64x" \
+  LDFLAGS="$(VKD3D_arm64ec-windows_LIBFLAGS) $(VKD3D_arm64ec_LIBFLAGS) $(VKD3D_LDFLAGS) $(arm64ec_LDFLAGS) $(LDFLAGS) -marm64x"
+
+$(OBJ)/.vkd3d-arm64ec-post-build: $(OBJ)/.wine-$(HOST_ARCH)-tools
+	mkdir -p $(VKD3D_arm64ec_LIBDIR)/vkd3d/aarch64-windows
+	$(call make-builtin,$(VKD3D_arm64ec_DST)/bin/libvkd3d-1.dll)
+	$(call make-builtin,$(VKD3D_arm64ec_DST)/bin/libvkd3d-shader-1.dll)
+	$(call make-builtin,$(VKD3D_arm64ec_DST)/bin/libvkd3d-utils-1.dll)
+	cp $(VKD3D_arm64ec_DST)/bin/libvkd3d-1.dll $(VKD3D_arm64ec_LIBDIR)/vkd3d/aarch64-windows
+	cp $(VKD3D_arm64ec_DST)/bin/libvkd3d-shader-1.dll $(VKD3D_arm64ec_LIBDIR)/vkd3d/aarch64-windows
+	cp $(VKD3D_arm64ec_DST)/bin/libvkd3d-utils-1.dll $(VKD3D_arm64ec_LIBDIR)/vkd3d/aarch64-windows
+	touch $@
+
+# One ARM64 Wine configure builds the ARM64X, i386 and x86_64 PE modules, so
+# the import library directory is per PE architecture: aarch64 links ARM64X,
+# CROSSLDFLAGS is arm64ec's default, i386 and x86_64 link their own builds.
+# The headers are shared.
+ifeq ($(TARGET_ARCH),arm64)
+WINE_aarch64_AUTOCONF_ARGS += \
+  VKD3D_PE_CFLAGS="-I$(VULKAN_HEADERS_arm64ec_DST)/include -I$(VKD3D_arm64ec_DST)/include/vkd3d" \
+  VKD3D_PE_LIBS="-lvkd3d -lvkd3d-shader -lvkd3d-utils"
+WINE_aarch64_ENV += \
+  CROSSLDFLAGS="-L$(VKD3D_arm64ec_LIBDIR) $(WINE_aarch64-windows_LIBFLAGS) $(WINE_aarch64_LIBFLAGS) $(WINE_LDFLAGS) $(aarch64_LDFLAGS) $(LDFLAGS)" \
+  aarch64_LDFLAGS="-L$(VKD3D_arm64ec_LIBDIR) $(WINE_aarch64_LIBFLAGS) $(WINE_LDFLAGS) $(aarch64_LDFLAGS) $(LDFLAGS)" \
+  i386_LDFLAGS="-L$(VKD3D_i386_LIBDIR) $(WINE_i386-windows_LIBFLAGS) $(WINE_i386_LIBFLAGS) $(WINE_LDFLAGS) $(i386_LDFLAGS) $(LDFLAGS)" \
+  x86_64_LDFLAGS="-L$(VKD3D_x86_64_LIBDIR) $(WINE_x86_64-windows_LIBFLAGS) $(WINE_x86_64_LIBFLAGS) $(WINE_LDFLAGS) $(x86_64_LDFLAGS) $(LDFLAGS)"
+$(OBJ)/.wine-aarch64-configure: $(OBJ)/.vkd3d-arm64ec-build $(OBJ)/.vkd3d-i386-build $(OBJ)/.vkd3d-x86_64-build
+$(OBJ)/.wine-aarch64-build: $(OBJ)/.vkd3d-arm64ec-post-build $(OBJ)/.vkd3d-i386-post-build $(OBJ)/.vkd3d-x86_64-post-build
+endif
+
 default_pfx: vkd3d
 
 
@@ -1290,7 +1346,7 @@ endif # WITHOUT_EXTRAS
 ## steam-audio
 ##
 
-WITHOUT_STEAM_AUDIO ?= 1
+WITHOUT_STEAM_AUDIO := 1
 ifneq ($(WITHOUT_STEAM_AUDIO),1)
 include $(SRC)/steam-audio/build-steam-audio.mk
 endif # WITHOUT_STEAM_AUDIO
@@ -1439,6 +1495,54 @@ $(OBJ)/.eac-i386-build:
 	touch $@
 
 endif
+
+##
+## xgameruntime
+##
+
+# The C++ System implementation has its own upstream CMake build. It uses the
+# same SDK and Wine host tools as the rest of Proton, not a host-built DLL.
+XGAMERUNTIME_CMAKE_ARGS = \
+  -DENABLE_TESTS=OFF \
+  -DNEXUS_WINE_SOURCE="$(WINE_SRC)" \
+  -DWIDL="$(WINE_$(HOST_ARCH)_OBJ)/tools/widl/widl" \
+  -DNEXUS_WINE_BUILTIN=ON \
+  -DNEXUS_WINEBUILD="$(WINE_$(HOST_ARCH)_OBJ)/tools/winebuild/winebuild"
+XGAMERUNTIME_CMAKE_ARGS += $(if $(NEXUS_XML2_SOURCE),-DNEXUS_XML2_SOURCE="$(NEXUS_XML2_SOURCE)")
+
+XGAMERUNTIME_i386_CMAKE_ARGS = \
+  -DCMAKE_TOOLCHAIN_FILE="$(XGAMERUNTIME_SRC)/win32-target.cmake" \
+  -DCMAKE_INSTALL_LIBDIR=lib/wine/i386-windows
+XGAMERUNTIME_x86_64_CMAKE_ARGS = \
+  -DCMAKE_TOOLCHAIN_FILE="$(XGAMERUNTIME_SRC)/win64-target.cmake" \
+  -DCMAKE_INSTALL_LIBDIR=lib/wine/x86_64-windows
+# ARM64 targets build one ARM64X module, like DXVK: native aarch64 code plus
+# ARM64EC code for x86_64 titles running under FEX, in aarch64-windows.
+XGAMERUNTIME_arm64ec_CMAKE_ARGS = \
+  -DCMAKE_SYSTEM_NAME=Windows \
+  -DCMAKE_SYSTEM_PROCESSOR=ARM64 \
+  -DCMAKE_INSTALL_LIBDIR=lib/wine/aarch64-windows
+# The ARM64 SDK's llvm-mingw defaults to Windows 7 headers, which hide APIs
+# such as BCryptHash; the x86_64 SDK's MinGW already exposes them.
+ifeq ($(TARGET_ARCH),arm64)
+XGAMERUNTIME_CFLAGS = -D_WIN32_WINNT=0x0A00
+endif
+
+$(eval $(call rules-source,xgameruntime,$(SRCDIR)/wine/dlls/xgameruntime))
+$(eval $(call rules-cmake,xgameruntime,i386,windows))
+$(eval $(call rules-cmake,xgameruntime,x86_64,windows))
+$(eval $(call rules-cmake,xgameruntime,arm64ec,windows))
+
+# rules-cmake has no per-architecture flags; the later assignment wins in env.
+XGAMERUNTIME_arm64ec_ENV += \
+  CFLAGS="$(XGAMERUNTIME_CFLAGS) $(arm64ec_CFLAGS) $(CFLAGS) -marm64x" \
+  CXXFLAGS="$(XGAMERUNTIME_CFLAGS) $(arm64ec_CFLAGS) $(CFLAGS) -marm64x" \
+  LDFLAGS="$(arm64ec_LDFLAGS) $(LDFLAGS) -marm64x"
+
+# The host-tool barrier also completes Wine's generated NLS dependencies.
+$(OBJ)/.xgameruntime-i386-configure $(OBJ)/.xgameruntime-x86_64-configure $(OBJ)/.xgameruntime-arm64ec-configure: $(OBJ)/.wine-$(HOST_ARCH)-tools
+
+default_pfx: xgameruntime
 
 ##
 ## Windows Symbol Store creation
@@ -1903,7 +2007,7 @@ endif
 ## default_pfx
 ##
 
-default_pfx: wine gst_good gst_bad gst_libav gst_plugins_rs lsteamclient steamexe vrclient wineopenxr $(WINEOPENXR64_JSON) dxvk dxvk-nvapi dxvk-igdext vkd3d-proton
+default_pfx: wine gst_good gst_bad gst_ugly gst_libav gst_plugins_rs lsteamclient steamexe vrclient wineopenxr $(WINEOPENXR64_JSON) dxvk dxvk-nvapi dxvk-igdext vkd3d-proton
 	find $(DST_LIBDIR)/wine -type f -execdir chmod a-w '{}' '+'
 	rm -rf $(abspath $(DIST_PREFIX))
 	rm -rf $(abspath $(DIST_PREFIX_ARM64))
@@ -2070,10 +2174,7 @@ deploy: all
 redist: all
 	mkdir -p $(REDIST_DIR)
 	rsync --delete -arx $(DST_BASE)/ $(REDIST_DIR)
-	mv $(REDIST_DIR) $(BUILD_NAME)
-	XZ_OPT="-9 -T$(J)" tar -cvJf $(BUILD_NAME).tar.xz $(BUILD_NAME)
-	sha512sum $(BUILD_NAME).tar.xz > $(BUILD_NAME).sha512sum
-	@echo "Proton build available at $(BUILD_NAME).tar.xz"
+	python3 "$(SRC)/nexus/runtime-dependencies.py" "$(REDIST_DIR)/files" --sdk "$(STEAMRT_IMAGE)"
 
 
 ##
@@ -2093,6 +2194,11 @@ distclean: dist-distclean
 
 .PHONY: module32 module64 module
 
+ifeq ($(module),xgameruntime)
+module32: xgameruntime-i386-build
+module64: xgameruntime-x86_64-build $(if $(filter arm64ec-windows,$(ARCHS)),xgameruntime-arm64ec-build)
+module: module32 module64
+else
 module32: | all-source wine-i386-configure
 	+$(MAKE) -j$(J) $(filter -j%,$(MAKEFLAGS)) $(MFLAGS) $(MAKEOVERRIDES) -C $(WINE_i386_OBJ)/dlls/$(module)
 
@@ -2101,6 +2207,7 @@ module64: | all-source wine-x86_64-configure
 
 module: | all-source wine-configure
 module: module32 module64
+endif
 
 ###############################
 else # outside of the container
