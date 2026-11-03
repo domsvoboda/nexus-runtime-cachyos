@@ -5,6 +5,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {project,readJson,sourceEnvironment} from '../inputs.mjs';
 import {fileHash} from './provenance.mjs';
+import {verifyXml2Source,xml2Directory} from '../xml2-source.mjs';
 import {buildPlayFabSessionProbe} from '../runtime-tests/build-playfab-session.mjs';
 const [outputArg,fixturesArg,resumeArg]=process.argv.slice(2);
 if(!outputArg||!fixturesArg||process.argv.length>5||resumeArg&&resumeArg!=='--resume')throw Error('Usage: build-fixtures.mjs BUILD_OUTPUT NEW_FIXTURES [--resume]');
@@ -16,6 +17,10 @@ const arm64=built.metadata.targetArchitecture==='arm64',sdk=arm64?built.inputs.s
 // linker also reserves a 1 MiB stack where the x86_64 SDK's GNU ld reserves
 // 2 MiB; some probes keep over 1 MiB of buffers on the stack.
 const windowsApi=arm64?' -D_WIN32_WINNT=0x0A00':'';
+const source=built.source,wine=source+'/wine',cpp=wine+'/dlls/xgameruntime',sdkBuild=built.prepared+'/sdk-build';
+const xml2=built.inputs.xml2Source;
+if(JSON.stringify(built.graph.xml2Source)!==JSON.stringify(xml2))throw Error('Fixture XML source graph mismatch');
+if(xml2)await verifyXml2Source(built.prepared,xml2,path.join(cpp,'cmake/xml2.lock.json'));
 const selection={sdk,sourceGraph:built.graph,source:built.source,runtime:built.runtime};
 if(resumeArg){
   if(JSON.stringify(await readJson(root+'/selection.json'))!==JSON.stringify(selection))throw Error('Fixture resume source mismatch');
@@ -24,17 +29,17 @@ if(resumeArg){
   await fs.mkdir(root,{recursive:false});
   await fs.writeFile(root+'/selection.json',JSON.stringify(selection)+'\n',{flag:'wx'});
 }
-const source=built.source,wine=source+'/wine',cpp=wine+'/dlls/xgameruntime',sdkBuild=built.prepared+'/sdk-build';
 const engine=process.env.NEXUS_CONTAINER_ENGINE||'docker';
 if(!['docker','podman'].includes(engine))throw Error('Unsupported SDK engine');
 const env=sourceEnvironment(),plans=[];
 function run(command,args,cwd=root,timeout=600000){plans.push({command,args});return execFileSync(command,args,{cwd,env,stdio:'inherit',timeout});}
 for(const abi of ['win64','win32']) {
   const mounts=['--mount',`type=bind,src=${cpp},dst=/cpp,readonly`,'--mount',`type=bind,src=${wine},dst=/wine,readonly`,'--mount',`type=bind,src=${built.runtime},dst=/engine,readonly`,'--mount',`type=bind,src=${root},dst=/fixtures`,'--mount',`type=bind,src=${sdkBuild}/obj-wine-${hostTools}/tools/widl/widl,dst=/widl,readonly`];
+  if(xml2)mounts.push('--mount',`type=bind,src=${path.join(built.prepared,xml2Directory)},dst=/xml2-source,readonly`);
   const base=['run','--rm','--network=none',...(engine==='podman'?['--userns=keep-id']:[]),'--user',`${process.getuid()}:${process.getgid()}`,'-e','CCACHE_DIR=/fixtures/compiler-cache','-e','CCACHE_MAXSIZE=128M','-e','CCACHE_COMPILERCHECK=content',...mounts,sdk];
   // Match component CI: MinGW PR110572 affects unoptimized C++23 RTTI.
   // Keep assertions enabled, rather than using Release/NDEBUG or hiding linker errors.
-  run(engine,[...base,'cmake','-S','/cpp','-B','/fixtures/'+abi,'-DCMAKE_TOOLCHAIN_FILE=/cpp/'+abi+'-target.cmake','-DCMAKE_CXX_FLAGS=-O2'+windowsApi,...(arm64?['-DCMAKE_C_FLAGS='+windowsApi.trim(),'-DCMAKE_EXE_LINKER_FLAGS=-Wl,--stack,2097152']:[]),'-DENABLE_TESTS=ON','-DNEXUS_MIGRATION_PROBES=ON','-DNEXUS_WINE_SOURCE=/wine','-DWIDL=/widl','-DWINE_EXECUTABLE=/engine/files/'+bin+'/wine']);
+  run(engine,[...base,'cmake','-S','/cpp','-B','/fixtures/'+abi,'-DCMAKE_TOOLCHAIN_FILE=/cpp/'+abi+'-target.cmake','-DCMAKE_CXX_FLAGS=-O2'+windowsApi,...(arm64?['-DCMAKE_C_FLAGS='+windowsApi.trim(),'-DCMAKE_EXE_LINKER_FLAGS=-Wl,--stack,2097152']:[]),'-DENABLE_TESTS=ON','-DNEXUS_MIGRATION_PROBES=ON','-DNEXUS_WINE_SOURCE=/wine',...(xml2?['-DNEXUS_XML2_SOURCE=/xml2-source']:[]),'-DWIDL=/widl','-DWINE_EXECUTABLE=/engine/files/'+bin+'/wine']);
   run(engine,[...base,'cmake','--build','/fixtures/'+abi,'--parallel','4']);
 }
 const native=path.join(root,'native');await fs.mkdir(native,{recursive:true});
