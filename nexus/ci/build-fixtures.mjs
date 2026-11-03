@@ -5,6 +5,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {project,readJson,sourceEnvironment} from '../inputs.mjs';
 import {fileHash} from './provenance.mjs';
+import {assertWaiterRunner,verifyWaiterFixtures} from './waiter-fixtures.mjs';
 import {verifyXml2Source,xml2Directory} from '../xml2-source.mjs';
 import {buildPlayFabSessionProbe} from '../runtime-tests/build-playfab-session.mjs';
 const [outputArg,fixturesArg,resumeArg]=process.argv.slice(2);
@@ -21,6 +22,7 @@ const source=built.source,wine=source+'/wine',cpp=wine+'/dlls/xgameruntime',sdkB
 const xml2=built.inputs.xml2Source;
 if(JSON.stringify(built.graph.xml2Source)!==JSON.stringify(xml2))throw Error('Fixture XML source graph mismatch');
 if(xml2)await verifyXml2Source(built.prepared,xml2,path.join(cpp,'cmake/xml2.lock.json'));
+if(built.inputs.variant)assertWaiterRunner(built.inputs,await fs.readFile(cpp+'/scripts/test-component.mjs','utf8'));
 const selection={sdk,sourceGraph:built.graph,source:built.source,runtime:built.runtime};
 if(resumeArg){
   if(JSON.stringify(await readJson(root+'/selection.json'))!==JSON.stringify(selection))throw Error('Fixture resume source mismatch');
@@ -74,4 +76,5 @@ async function inventory(directory){for(const d of await fs.readdir(directory,{w
   const file=path.join(directory,d.name);if(d.isDirectory())await inventory(file);else if(d.isFile()&&/\.(exe|dll)$/.test(d.name))hashes[path.relative(root,file)]=await fileHash(file);
 }}
 for(const directory of [root+'/win64/bin',root+'/win32/bin',native])await inventory(directory);
+await verifyWaiterFixtures(root,built.inputs,hashes);
 await fs.writeFile(root+'/fixtures.json',JSON.stringify({schema:1,scope:'synthetic test executables only, not distribution components',sdk,sourceGraph:built.graph,plans,hashes},null,2)+'\n',{flag:'wx'});

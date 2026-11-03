@@ -54,3 +54,15 @@ for(const problem of ['bytes','provenance-link','graph'])test(`fixture XML ${pro
  const {result,argv}=await f.run();assert.notEqual(result.status,0);assert.match(result.stderr,/Strict XML source bytes changed|Strict XML provenance redirected|Fixture XML source graph mismatch/);assert.deepEqual(argv,[]);
  await assert.rejects(fs.stat(path.join(f.root,'fixtures')),{code:'ENOENT'});
 });
+
+test('actual CachyOS fixture build keeps both ABI ALL targets after requiring the waiter runner',async t=>{
+ const f=await fixture(t);f.built.inputs.variant=inputs.variant;
+ const scripts=path.join(f.built.source,'wine/dlls/xgameruntime/scripts');await fs.mkdir(scripts);await fs.writeFile(path.join(scripts,'test-component.mjs'),"['nexus_taskqueue-composite-waiters',96]");
+ const {result,argv}=await f.run();assert.match(result.stderr,/fixture-capture-complete/);assert.equal(argv.length,4);
+ for(const index of [1,3]){assert.ok(argv[index].includes('--build'));assert.ok(argv[index].includes('/fixtures/'+(index===1?'win64':'win32')));assert.ok(!argv[index].includes('--target'));}
+});
+test('stale CachyOS waiter runner fails before any SDK command or fixture directory',async t=>{
+ const f=await fixture(t);f.built.inputs.variant=inputs.variant;
+ const scripts=path.join(f.built.source,'wine/dlls/xgameruntime/scripts');await fs.mkdir(scripts);await fs.writeFile(path.join(scripts,'test-component.mjs'),"['nexus_taskqueue-composite-waiters',95]");
+ const {result,argv}=await f.run();assert.match(result.stderr,/Missing mandatory composite waiter runner gate/);assert.deepEqual(argv,[]);await assert.rejects(fs.stat(path.join(f.root,'fixtures')),{code:'ENOENT'});
+});
