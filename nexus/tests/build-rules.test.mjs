@@ -24,10 +24,10 @@ function fixture(barrier){
     const obj=path.join(dir,'obj');fs.mkdirSync(src,{recursive:true});fs.mkdirSync(obj);
     fs.writeFileSync(path.join(src,'fixture.cpp'),'extern "C" __declspec(dllexport) int fixture_value() { return 42; }\n');
     fs.writeFileSync(path.join(src,'CMakeLists.txt'),`cmake_minimum_required(VERSION 3.20)
-project(make_graph_fixture LANGUAGES CXX)
 if(NOT EXISTS "\${WIDL}" OR NOT EXISTS "\${NEXUS_WINEBUILD}")
   message(FATAL_ERROR "Wine host tools were not completed before configure")
 endif()
+project(make_graph_fixture LANGUAGES CXX)
 if(NOT NEXUS_WINE_BUILTIN OR ENABLE_TESTS)
   message(FATAL_ERROR "Wrong distribution mode")
 endif()
@@ -69,9 +69,13 @@ $(OBJ)/.wine-x86_64-tools:
 test('the actual parallel CMake rules require the Wine host-tool barrier',()=>{
     const dir=fixture(false);
     try{
-        const result=spawnSync('make',['-j4','module=xgameruntime','module'],{cwd:dir,encoding:'utf8',timeout:60000});
+        // Missing host tools must fail before even a slow compiler is probed.
+        const bin=path.join(dir,'bin'),invoked=path.join(dir,'compiler-invoked');fs.mkdirSync(bin);
+        for(const cpu of ['i686','x86_64'])fs.writeFileSync(path.join(bin,cpu+'-w64-mingw32-g++'),'#!'+process.execPath+'\n'+`require('fs').appendFileSync(${JSON.stringify(invoked)},'invoked\\n');setTimeout(()=>process.exit(1),5000);\n`,{mode:0o755});
+        const result=spawnSync('make',['-j4','module=xgameruntime','module'],{cwd:dir,encoding:'utf8',timeout:60000,env:{...process.env,PATH:bin+':'+process.env.PATH}});
         assert.notEqual(result.status,0);
         assert.match(result.stdout+result.stderr,/Wine host tools were not completed before configure/);
+        assert.equal(fs.existsSync(invoked),false,'Missing host tools must not invoke the compiler');
     }finally{fs.rmSync(dir,{recursive:true});}
 });
 test('module preflight and default prefix use the same two-ABI CMake install',()=>{
