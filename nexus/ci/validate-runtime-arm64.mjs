@@ -143,7 +143,7 @@ try{
   // The x86_64 validation's HTTP/2, media and graphics suites. The HTTP/2 and
   // DXVK clients stay x86_64 and run as ARM64EC through FEX against the ARM64X
   // winhttp/nghttp2, DXVK and vkd3d-shader; media checks the aarch64 libav.
-  for(const [name,script,args]of [['http','run-http2-suite.mjs',[runtime,work]],['media','run-media-suite.mjs',[runtime,work+'/media']],['graphics','run-dxvk-suite.mjs',[runtime,work]]]){
+  for(const [name,script,args]of [['http','run-http2-suite.mjs',[runtime,work]],['media','run-media-suite.mjs',['--family',built.inputs.variant?.family??'nexus',runtime,work+'/media']],['graphics','run-dxvk-suite.mjs',[runtime,work]]]){
     const r=spawnSync(process.execPath,[project+'/runtime-tests/'+script,'--arch','arm64',...args],{cwd:work,env:gateEnv,encoding:'utf8',timeout:1800000,maxBuffer:16*1024*1024});
     if(!await record('arm64-'+name,{status:r.status,signal:r.signal,error:r.error,stdout:validationProcessOutput(r)},()=>true,{fatal:false}))failedGates.push('arm64-'+name);
     if(name==='http')for(const directory of (await fs.readdir(work)).filter(x=>x.startsWith('runtime-http2-'))){
