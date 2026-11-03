@@ -57,12 +57,16 @@ class CheckpointTests(unittest.TestCase):
         (self.output / 'built.json').write_text(json.dumps(self.built))
         (self.fixtures / 'fixtures.json').write_text(json.dumps({'sourceGraph': self.built['graph']}))
         (self.fixtures / 'probe.exe').write_bytes(b'unchanged fixture')
+        for abi in ['win64', 'win32']:
+            target = self.fixtures / abi / 'bin/nexus_store-context-cancellation.exe'
+            target.parent.mkdir(parents=True)
+            target.write_bytes(('unchanged Store cancellation fixture ' + abi).encode())
         self.waiter_payloads = {}
         for abi in ['win64', 'win32']:
             relative = abi + '/bin/nexus_taskqueue-composite-waiters.exe'
             payload = ('synthetic waiter fixture ' + abi).encode()
             file = self.fixtures / relative
-            file.parent.mkdir(parents=True)
+            file.parent.mkdir(parents=True, exist_ok=True)
             file.write_bytes(payload)
             self.waiter_payloads[relative] = payload
         self.checkpoint = self.root / 'checkpoint'
@@ -130,6 +134,9 @@ class CheckpointTests(unittest.TestCase):
                 self.assertEqual(json.loads((temp / 'nexus-output/built.json').read_text())['source'], str(source))
                 self.assertEqual(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source), (self.sha+'\n').encode())
                 self.assertEqual((temp / 'nexus-fixtures/probe.exe').read_bytes(), b'unchanged fixture')
+                for abi in ['win64', 'win32']:
+                    self.assertEqual((temp / ('nexus-fixtures/' + abi + '/bin/nexus_store-context-cancellation.exe')).read_bytes(),
+                                     ('unchanged Store cancellation fixture ' + abi).encode())
                 for relative, payload in self.waiter_payloads.items():
                     self.assertEqual((temp / 'nexus-fixtures' / relative).read_bytes(), payload)
                 self.assertEqual((temp / 'nexus-work/source-module-plan.json').read_text(), '{"required":["wine"],"excluded":["zluda-libs/rocm-systems"]}')
