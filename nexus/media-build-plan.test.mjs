@@ -27,6 +27,8 @@ test('actual auxiliary admission requires both ABIs, exact hashes and matching E
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'nexus-media-abis-'));
   const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
   const inputs=JSON.parse(await fs.readFile(new URL('./inputs.lock.json',import.meta.url)));
+  // This fixture covers the original portable FFmpeg admission independently.
+  delete inputs.variant;
   const lock=JSON.parse(await fs.readFile(new URL('./runtime-media.lock.json',import.meta.url)));
   const write=async(name,bytes)=>{const file=path.join(root,name);await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,bytes);return hash(bytes);};
   try{
@@ -46,6 +48,7 @@ test('actual auxiliary admission requires both ABIs, exact hashes and matching E
     }
     const save=()=>write('media/media-manifest.json',JSON.stringify(media));
     await save();await verifyAuxiliary(root,inputs);
+    await assert.rejects(verifyAuxiliary(root,{...inputs,variant:{family:'nexus-cachyos'}}),/ENOENT/);
     const x86=media.architectures['i386-linux-gnu'];delete media.architectures['i386-linux-gnu'];await save();
     await assert.rejects(verifyAuxiliary(root,inputs),/Incomplete media architectures/);
     media.architectures['i386-linux-gnu']=x86;

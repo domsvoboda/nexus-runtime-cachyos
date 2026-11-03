@@ -79,6 +79,28 @@ class CheckpointTests(unittest.TestCase):
         temp.mkdir()
         return source, temp
 
+    def test_portable_media_source_license_and_both_architectures_survive_checkpoint(self):
+        self.built['inputs'] = {'variant': {'family': 'nexus-cachyos'}}
+        (self.output / 'built.json').write_text(json.dumps(self.built))
+        payloads = {}
+        for component, archive, library in [('portable-glib', 'glib-2.84.4.tar.xz', 'libglib-2.0.so.0.8400.4'),
+                                            ('portable-libva', 'libva-2.22.0.tar.bz2', 'libva.so.2.2200.0')]:
+            for relative, payload in {'manifest.json': b'{"schema":1}', 'COPYING': b'license', archive: b'exact source',
+                                      'stage/usr/lib/x86_64-linux-gnu/' + library: b'x64 library',
+                                      'stage/usr/lib/i386-linux-gnu/' + library: b'x86 library'}.items():
+                payloads[component + '/' + relative] = payload
+        root = self.temp / 'nexus-auxiliary'
+        for relative, payload in payloads.items():
+            file = root / relative
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_bytes(payload)
+        cp.create(self.output, self.fixtures, self.checkpoint)
+        source, temp = self.destination()
+        with patch.dict(os.environ, {'GITHUB_WORKSPACE': str(source), 'RUNNER_TEMP': str(temp)}):
+            cp.restore(self.checkpoint, 'x86_64')
+        for relative, payload in payloads.items():
+            self.assertEqual((temp / 'nexus-auxiliary' / relative).read_bytes(), payload)
+
     def test_roundtrip_variants_and_default_both_architectures_relocates_only_paths(self):
         identities = [('domsvoboda/nexus-runtime-cachyos', 'nexus-runtime-cachyos-11.0-experimental', 'x86_64'),
                       ('domsvoboda/nexus-runtime', 'nexus-runtime-11.0-experimental', 'x86_64'),

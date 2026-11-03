@@ -1,0 +1,14 @@
+{
+  "version": "2.84.4",
+  "url": "https://download.gnome.org/sources/glib/2.84/glib-2.84.4.tar.xz",
+  "archive": "glib-2.84.4.tar.xz",
+  "sha256": "8a9ea10943c36fc117e253f80c91e477b673525ae45762942858aef57631bb90",
+  "license": "LGPL-2.1-or-later",
+  "libraries": {
+    "libglib-2.0.so.0": "libglib-2.0.so.0.8400.4",
+    "libgobject-2.0.so.0": "libgobject-2.0.so.0.8400.4",
+    "libgmodule-2.0.so.0": "libgmodule-2.0.so.0.8400.4",
+    "libgio-2.0.so.0": "libgio-2.0.so.0.8400.4"
+  },
+  "licenseSha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb"
+}

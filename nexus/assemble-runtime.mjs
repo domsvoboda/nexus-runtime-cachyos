@@ -10,12 +10,15 @@ import {stageSdkNotices} from './sdk-notices.mjs';
 import {moduleCapabilities} from './module-capabilities.mjs';
 import {buildPackageRegistration} from './package-registration.mjs';
 import {verifyRuntimeDependencies} from './runtime-dependency-sources.mjs';
+import {stagePortableGlib} from './portable-glib.mjs';
+import {stagePortableLibva} from './portable-libva.mjs';
 export async function assembleRuntime({work,build,redist,source,wine,aux,output,name,inputs,graph,auxiliary,lockHash,target=targets.x86_64}){
 const proton={requiresBackendVersion:inputs.requiresBackendVersion};
 await fs.mkdir(output,{recursive:false});
 const runtime=path.join(output,name);
 await copySdkRedistribution(redist,runtime);
 const files=path.join(runtime,'files'),components={};
+if(inputs.variant?.family==='nexus-cachyos'){await stagePortableGlib(path.join(aux,'portable-glib'),files);await stagePortableLibva(path.join(aux,'portable-libva'),files);}
 for(const [arch,hash] of Object.entries(auxiliary.libraries)){
   if(!target.peArchitectures.includes(arch))throw Error('Unexpected architecture');
   const bytes=await fs.readFile(path.join(aux,'components',arch,'libnghttp2.dll'));
