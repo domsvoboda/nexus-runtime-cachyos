@@ -32,3 +32,21 @@ jobs:
       - run: node nexus/check-source.mjs
       - run: node --test nexus/*.test.mjs nexus/tests/*.test.mjs nexus/ci/*.test.mjs nexus/runtime-compat/*.test.mjs
       - run: git diff --check
+      - name: Resolve the validated pinned XGameRuntime source
+        id: xgr-pin
+        run: node nexus/ci/xgr-source-pin.mjs
+      - name: Check out the exact dependency for complete source contracts
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.xgr-pin.outputs.repository }}
+          ref: ${{ steps.xgr-pin.outputs.commit }}
+          path: pinned-xgr-source
+      - name: Require all pinned XGameRuntime source contracts
+        working-directory: pinned-xgr-source
+        env:
+          EXPECTED_XGR_COMMIT: ${{ steps.xgr-pin.outputs.commit }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_XGR_COMMIT"
+          printf 'Verified XGameRuntime checkout: %s\n' "$EXPECTED_XGR_COMMIT" >> "$GITHUB_STEP_SUMMARY"
+          node --test scripts/test-policy.test.mjs scripts/test-store-context.test.mjs scripts/test-source-only.test.mjs scripts/test-xml2-source.test.mjs
+          git diff --check
