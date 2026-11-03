@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import fs from 'node:fs/promises';
+import {assertWaiterRunner,verifyWaiterFixtures,assertWaiterResult} from './waiter-fixtures.mjs';
 import {hasCompleteHttpCoverage} from './http-coverage.mjs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -17,6 +18,7 @@ await fs.mkdir(work,{recursive:false});await fs.chmod(work,0o700);
 const fixtureProof=await readJson(fixtures+'/fixtures.json');
 if(fixtureProof.sdk!==built.inputs.sdk||JSON.stringify(fixtureProof.sourceGraph)!==JSON.stringify(built.graph))throw Error('Test fixtures do not match the selected SDK/source graph');
 for(const [file,expected]of Object.entries(fixtureProof.hashes))if(await fileHash(fixtures+'/'+file)!==expected)throw Error('Changed test fixture');
+await verifyWaiterFixtures(fixtures,built.inputs,fixtureProof.hashes);
 // Verify already assembled notices without mutating the inventoried runtime.
 await verifySdkNotices(runtime,project);
 if(built.inputs.xml2Source){
@@ -39,6 +41,7 @@ try{
   const cpp=built.source+'/wine/dlls/xgameruntime',scripts=work+'/scripts';await fs.mkdir(scripts);
   for(const gate of ['component','authentication','user-contracts','store']){
     let text=await fs.readFile(cpp+'/scripts/test-'+gate+'.mjs','utf8');
+    if(gate==='component')assertWaiterRunner(built.inputs,text);
     text=text.replaceAll('xgameruntime=n','xgameruntime=b').replaceAll("base+'/lib64:'+base+'/lib'","base+'/lib/x86_64-linux-gnu:'+base+'/lib/i386-linux-gnu:'+base+'/lib'").replaceAll("path.join(base,'lib64')+':'+path.join(base,'lib')","path.join(base,'lib','x86_64-linux-gnu')+':'+path.join(base,'lib','i386-linux-gnu')+':'+path.join(base,'lib')");
     await fs.writeFile(scripts+'/test-'+gate+'.mjs',text,{flag:'wx'});
   }
@@ -49,7 +52,14 @@ try{
     const dll=files+'/lib/wine/'+arch+'-windows/xgameruntime.dll';
     if(await fileHash(dll)!==built.metadata.componentsByArchitecture[arch]['xgameruntime.dll'])throw Error('Coherent C++ module differs');
     await fs.copyFile(dll,bin+'/xgameruntime.dll',fs.constants.COPYFILE_EXCL);
-    for(const gate of ['component','authentication','user-contracts','store'])await execute(abi+'-'+gate,process.execPath,[scripts+'/test-'+gate+'.mjs',directory,...(gate==='component'?[]:[engine])]);
+    for(const gate of ['component','authentication','user-contracts','store']){
+      await execute(abi+'-'+gate,process.execPath,[scripts+'/test-'+gate+'.mjs',directory,...(gate==='component'?[]:[engine])]);
+      if(gate==='component'&&built.inputs.variant){
+        const groups=(await fs.readdir(directory)).filter(name=>name.startsWith('nexus-component-test-'));
+        if(groups.length!==1)throw Error('Ambiguous composite waiter result group');
+        assertWaiterResult(built.inputs,await readJson(path.join(directory,groups[0],'results.json')));
+      }
+    }
   }
   await execute('wine-native-contracts',process.execPath,[project+'/ci/wine-contracts.mjs',runtime,fixtures+'/native',work]);
   for(const [name,script,args]of [['http','run-http2-suite.mjs',[runtime,work]],['media','run-media-suite.mjs',[runtime,work+'/media']],['graphics','run-dxvk-suite.mjs',[runtime,work]]]){
