@@ -11,6 +11,9 @@ const architectures=[
 ];
 // Native i386 Wine GUI probes need the X11 driver dependencies too.
 const libraries=['libgnutls.so.30','libfreetype.so.6','libX11.so.6','libXext.so.6'];
+// The native x86_64 GStreamer probe loads SDK-built FFmpeg hardware backends.
+// This is not a claim of 32-bit codec coverage.
+const mediaLibraries=['libva.so.2','libva-drm.so.2','libva-x11.so.2','libvdpau.so.1'];
 
 export async function checkValidationDependencies({root='/',execute=spawnSync}={}){
   root=await fs.realpath(root);
@@ -26,7 +29,7 @@ export async function checkValidationDependencies({root='/',execute=spawnSync}={
   for(const arch of architectures){
     const loader=await contained(host(arch.loader));
     await fs.access(loader,fs.constants.X_OK);
-    for(const library of libraries){
+    for(const library of [...libraries,...(arch.name==='x86_64'?mediaLibraries:[])]){
       try{
         let file;
         for(const directory of ['/usr/lib/','/lib/']){

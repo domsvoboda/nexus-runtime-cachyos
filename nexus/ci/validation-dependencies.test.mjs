@@ -15,7 +15,7 @@ async function fixture(run){
     }
     for(const [triplet,elfClass,machine]of [['x86_64-linux-gnu',2,62],['i386-linux-gnu',1,3]]){
       const directory=root+'/usr/lib/'+triplet;await fs.mkdir(directory,{recursive:true});
-      for(const name of ['libgnutls.so.30','libfreetype.so.6','libX11.so.6','libXext.so.6']){
+      for(const name of ['libgnutls.so.30','libfreetype.so.6','libX11.so.6','libXext.so.6',...(triplet==='x86_64-linux-gnu'?['libva.so.2','libva-drm.so.2','libva-x11.so.2','libvdpau.so.1']:[])]){
         const header=Buffer.alloc(20);header.write('\x7fELF');header[4]=elfClass;header[5]=1;header.writeUInt16LE(machine,18);
         await fs.writeFile(directory+'/'+name,header);
       }
@@ -28,9 +28,9 @@ const resolved=()=>({status:0,signal:null,stdout:'libc.so.6 => /synthetic/libc.s
 test('both Unix ABIs and all transitive dependencies are checked without host search overrides',async()=>fixture(async root=>{
   const calls=[];
   const results=await checkValidationDependencies({root,execute:(loader,args,options)=>{calls.push({loader,args,options});return resolved();}});
-  assert.equal(results.length,8);assert.deepEqual(results.map(x=>x.architecture),[...Array(4).fill('x86_64'),...Array(4).fill('i386')]);
-  assert.ok(calls.slice(0,4).every(x=>x.loader.endsWith('/lib64/ld-linux-x86-64.so.2')));
-  assert.ok(calls.slice(4).every(x=>x.loader.endsWith('/lib/ld-linux.so.2')));
+  assert.equal(results.length,12);assert.deepEqual(results.map(x=>x.architecture),[...Array(8).fill('x86_64'),...Array(4).fill('i386')]);
+  assert.ok(calls.slice(0,8).every(x=>x.loader.endsWith('/lib64/ld-linux-x86-64.so.2')));
+  assert.ok(calls.slice(8).every(x=>x.loader.endsWith('/lib/ld-linux.so.2')));
   for(const call of calls){assert.equal(call.args[0],'--list');assert.equal(call.args.length,2);assert.ok(call.args[1].startsWith(root+'/'));assert.equal(call.options.timeout,10000);assert.ok(!Object.keys(call.options.env).some(k=>k.startsWith('LD_')));}
 }));
 test('amd64 prerequisites cannot hide missing i386 GnuTLS',async()=>fixture(async root=>{
@@ -43,7 +43,7 @@ test('missing i386 FreeType fails early rather than warning during native tests'
 }));
 test('a 64-bit library in the i386 directory is rejected before executing the loader',async()=>fixture(async root=>{
   await fs.copyFile(root+'/usr/lib/x86_64-linux-gnu/libgnutls.so.30',root+'/usr/lib/i386-linux-gnu/libgnutls.so.30');
-  let calls=0;await assert.rejects(checkValidationDependencies({root,execute:()=>{calls++;return resolved();}}),/i386 libgnutls\.so\.30.*wrong ELF/);assert.equal(calls,4);
+  let calls=0;await assert.rejects(checkValidationDependencies({root,execute:()=>{calls++;return resolved();}}),/i386 libgnutls\.so\.30.*wrong ELF/);assert.equal(calls,8);
 }));
 test('missing transitive dependencies, loader errors, signals and timeouts are fatal',async()=>fixture(async root=>{
   for(const result of [
@@ -57,7 +57,7 @@ test('missing transitive dependencies, loader errors, signals and timeouts are f
 test('real library symlinks within the runner root are accepted, escaped targets are not',async()=>fixture(async root=>{
   const library=root+'/usr/lib/i386-linux-gnu/libgnutls.so.30';
   await fs.rename(library,library+'.actual');await fs.symlink('libgnutls.so.30.actual',library);
-  assert.equal((await checkValidationDependencies({root,execute:resolved})).length,8);
+  assert.equal((await checkValidationDependencies({root,execute:resolved})).length,12);
   await fs.unlink(library);await fs.symlink('/etc/passwd',library);
   await assert.rejects(checkValidationDependencies({root,execute:resolved}),/escapes validation root/);
 }));
@@ -67,4 +67,16 @@ test('missing i386 X11 driver libraries fail before compiling a runtime',async()
     await fs.unlink(root+'/usr/lib/i386-linux-gnu/'+name);
     await assert.rejects(checkValidationDependencies({root,execute:resolved}),error=>error.message.includes('i386 '+name)&&error.message.includes('missing'));
   });
+});
+
+test('native media VA and VDPAU prerequisites fail before SDK compilation',async()=>{
+ for(const name of ['libva.so.2','libva-drm.so.2','libva-x11.so.2','libvdpau.so.1'])await fixture(async root=>{
+  await fs.unlink(root+'/usr/lib/x86_64-linux-gnu/'+name);
+  await assert.rejects(checkValidationDependencies({root,execute:resolved}),error=>error.message.includes('x86_64 '+name)&&error.message.includes('missing'));
+ });
+});
+test('build and checkpoint-resume install media prerequisites before native preflight',async()=>{
+ const workflow=await fs.readFile(new URL('../../.github/workflows/nexus-runtime.yml',import.meta.url),'utf8');
+ const sections=workflow.split('- name: Install bounded offline validation prerequisites').slice(1);assert.equal(sections.length,2);
+ for(const section of sections){const install=section.slice(0,section.indexOf('node nexus/ci/validation-dependencies.mjs'));for(const name of ['libva2','libva-drm2','libva-x11-2','libvdpau1'])assert.ok(install.includes(name),name);}
 });
