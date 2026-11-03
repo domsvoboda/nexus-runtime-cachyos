@@ -2236,6 +2236,13 @@ ifeq ($(CONTAINER_ENGINE),)
 	CONTAINER_ENGINE := docker
 endif
 
+# The verified parser tree is a sibling of OBJ, outside the existing bind mounts.
+# Share only that tree, read-only, retaining optional Podman SELinux relabeling.
+ifneq ($(NEXUS_XML2_SOURCE),)
+nexus_xml2_comma := ,
+override DOCKER_OPTS := -v $(NEXUS_XML2_SOURCE):$(NEXUS_XML2_SOURCE):ro$(subst :,$(nexus_xml2_comma),$(CONTAINER_MOUNT_OPTS)) $(DOCKER_OPTS)
+endif
+
 DOCKER_BASE = $(CONTAINER_ENGINE) run --rm -v $(SRC):$(SRC)$(CONTAINER_MOUNT_OPTS) -v $(OBJ):$(OBJ)$(CONTAINER_MOUNT_OPTS) \
                 -w $(OBJ) -e MAKEFLAGS \
                 $(DOCKER_OPTS) $(STEAMRT_IMAGE)
