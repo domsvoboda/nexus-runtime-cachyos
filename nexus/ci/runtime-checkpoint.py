@@ -176,6 +176,11 @@ def create(output, fixtures, checkpoint):
         'nexus-auxiliary/media/media-manifest.json', 'nexus-auxiliary/media/stage',
         'nexus-auxiliary/media/ffmpeg-' + media['version'] + '.tar.xz',
         'nexus-work/prepared.json', 'nexus-work/source-module-plan.json', 'nexus-work/runtime-dependency-sources']
+    if built.get('inputs', {}).get('variant', {}).get('family') == 'nexus-cachyos':
+        support += ['nexus-auxiliary/portable-glib/manifest.json', 'nexus-auxiliary/portable-glib/COPYING',
+                    'nexus-auxiliary/portable-glib/stage', 'nexus-auxiliary/portable-glib/glib-2.84.4.tar.xz',
+                    'nexus-auxiliary/portable-libva/manifest.json', 'nexus-auxiliary/portable-libva/COPYING',
+                    'nexus-auxiliary/portable-libva/stage', 'nexus-auxiliary/portable-libva/libva-2.22.0.tar.bz2']
     if pin is not None:
         support += ['nexus-work/xgr-xml2-source', 'nexus-work/xgr-xml2-source.json']
     pack(temp, checkpoint / 'support.tar.zst', support)

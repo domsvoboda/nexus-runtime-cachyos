@@ -5,6 +5,8 @@ import {project,readJson,sha256} from './inputs.mjs';
 import {targets} from './target.mjs';
 import {llvmMingwPin} from './llvm-mingw.mjs';
 import {mediaRuntimeArchitectures} from './media-build-plan.mjs';
+import {verifyPortableGlib} from './portable-glib.mjs';
+import {verifyPortableLibva} from './portable-libva.mjs';
 export async function verifyAuxiliary(directory,inputs,target=targets.x86_64){
   const bytes=await fs.readFile(path.join(directory,'auxiliary.json')),manifest=JSON.parse(bytes);
   const lockHash=sha256(await fs.readFile(path.join(project,'inputs.lock.json')));
@@ -40,5 +42,6 @@ export async function verifyAuxiliary(directory,inputs,target=targets.x86_64){
       if(bytes.length<20||bytes.readUInt32BE(0)!==0x7f454c46||bytes[4]!==elfClass||bytes[5]!==1||bytes.readUInt16LE(18)!==machine)throw Error('Wrong media ELF architecture: '+triplet+'/'+soname);
     }
   }
+  if(inputs.variant?.family==='nexus-cachyos'){await verifyPortableGlib(path.join(directory,'portable-glib'));await verifyPortableLibva(path.join(directory,'portable-libva'));}
   return {manifest,manifestSha256:sha256(bytes),mediaSha256:sha256(await fs.readFile(path.join(directory,'media/media-manifest.json')))};
 }
