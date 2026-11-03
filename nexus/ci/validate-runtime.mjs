@@ -62,7 +62,7 @@ try{
     }
   }
   await execute('wine-native-contracts',process.execPath,[project+'/ci/wine-contracts.mjs',runtime,fixtures+'/native',work]);
-  for(const [name,script,args]of [['http','run-http2-suite.mjs',[runtime,work]],['media','run-media-suite.mjs',[runtime,work+'/media']],['graphics','run-dxvk-suite.mjs',[runtime,work]]]){
+  for(const [name,script,args]of [['http','run-http2-suite.mjs',[runtime,work]],['media','run-media-suite.mjs',['--family',built.inputs.variant?.family??'nexus',runtime,work+'/media']],['graphics','run-dxvk-suite.mjs',[runtime,work]]]){
     await execute(name,process.execPath,[project+'/runtime-tests/'+script,...args]);
     if(name==='http'){
       const directories=(await fs.readdir(work)).filter(x=>x.startsWith('runtime-http2-'));
