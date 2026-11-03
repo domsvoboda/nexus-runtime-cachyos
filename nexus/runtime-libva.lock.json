@@ -1,0 +1,13 @@
+{
+  "version": "2.22.0",
+  "url": "https://github.com/intel/libva/releases/download/2.22.0/libva-2.22.0.tar.bz2",
+  "archive": "libva-2.22.0.tar.bz2",
+  "sha256": "e3da2250654c8d52b3f59f8cb3f3d8e7fb1a2ee64378dbc400fbc5663de7edb8",
+  "license": "MIT",
+  "licenseSha256": "c86a782ee845b52472dae9b9d79fb915d333628ac0efe49cdce63644814931de",
+  "libraries": {
+    "libva.so.2": "libva.so.2.2200.0",
+    "libva-drm.so.2": "libva-drm.so.2.2200.0",
+    "libva-x11.so.2": "libva-x11.so.2.2200.0"
+  }
+}

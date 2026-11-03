@@ -6,6 +6,8 @@ import {buildCompatibility} from './runtime-compat/build.mjs';
 import {targetArgument} from './target.mjs';
 import {llvmMingwPin,fetchLlvmMingw} from './llvm-mingw.mjs';
 import {peMachine,elfMachine} from './pe.mjs';
+import {buildPortableGlib} from './portable-glib.mjs';
+import {buildPortableLibva} from './portable-libva.mjs';
 const {target,args}=targetArgument(process.argv.slice(2));
 const [flag,directory]=args;
 if(flag!=='--work'||!directory||args.length!==2)throw Error('Usage: build-auxiliary.mjs [--arch x86_64|arm64] --work NEW_DIRECTORY');
@@ -49,3 +51,7 @@ if(toolchain)Object.assign(manifest,{arch:target.name,toolchain:{url:toolchain.u
 await fs.writeFile(path.join(work,'auxiliary.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});
 run('node',[path.join(project,'build-runtime-media.mjs'),'--work',path.join(work,'media'),'--jobs','4'],project);
 run('node',[path.join(project,'ci/check-media-glibc.mjs'),path.join(work,'media/media-manifest.json')],project);
+
+if(inputs.variant?.family==='nexus-cachyos')await buildPortableGlib(path.join(work,'portable-glib'));
+
+if(inputs.variant?.family==='nexus-cachyos')await buildPortableLibva(path.join(work,'portable-libva'));
