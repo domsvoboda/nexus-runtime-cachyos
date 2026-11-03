@@ -84,7 +84,9 @@ jobs:
       - name: Reclaim unused hosted SDKs and require source disk budget
         run: bash nexus/ci/runner-space.sh --prepare
       - name: Initialize only pinned required source modules
-        run: node nexus/ci/initialize-source.mjs --initialize
+        run: |
+          node nexus/ci/initialize-source.mjs --initialize
+          bash nexus/ci/runner-space.sh --report after-source
       - name: Initialize runner-local cache directories
         run: |
           printf 'CCACHE_DIR=%s/nexus-ccache\nCARGO_HOME=%s/nexus-cargo\n' "$RUNNER_TEMP" "$RUNNER_TEMP" >> "$GITHUB_ENV"
@@ -97,6 +99,8 @@ jobs:
           sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 install -y --no-install-recommends zstd build-essential cmake ccache gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 rsync file curl xz-utils flex bison autoconf automake libtool libjson-perl wine64-tools pkg-config python3 openssl xvfb xauth libfreetype-dev libgnutls28-dev libvulkan1 mesa-vulkan-drivers libx11-6 libxext6 libgstreamer1.0-dev libgstreamer-plugins-base1.0-0
           echo /usr/lib/wine >> "$GITHUB_PATH"
           sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 install -y --no-install-recommends libgnutls30t64:i386 libfreetype6:i386 libx11-6:i386 libxext6:i386
+      - name: Report source and prerequisite disk usage
+        run: bash nexus/ci/runner-space.sh --report after-prerequisites
       - name: Check both native validation library ABIs before SDK compilation
         run: node nexus/ci/validation-dependencies.mjs
       - uses: actions/download-artifact@v4
@@ -124,6 +128,10 @@ jobs:
       - name: Build coherent pinned SDK runtime
         id: compile
         run: node nexus/build-runtime.mjs "$RUNNER_TEMP/nexus-auxiliary" "$RUNNER_TEMP/nexus-work" "$RUNNER_TEMP/nexus-output"
+      - name: Report SDK stage disk usage even after failure
+        continue-on-error: true
+        if: always() && !cancelled() && steps.compile.outcome != 'skipped'
+        run: bash nexus/ci/runner-space.sh --report after-sdk
       - name: Save bounded compiler cache even after a compile failure
         if: always() && !cancelled() && steps.compiler-cache.outcome == 'success' && steps.compiler-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
