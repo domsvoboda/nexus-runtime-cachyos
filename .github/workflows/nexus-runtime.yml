@@ -81,13 +81,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Reclaim unused hosted SDKs and require source disk budget
+        run: bash nexus/ci/runner-space.sh --prepare
       - name: Initialize only pinned required source modules
         run: node nexus/ci/initialize-source.mjs --initialize
-      - name: Free only unused preinstalled hosted-runner SDKs
-        run: |
-          test "$RUNNER_ENVIRONMENT" = github-hosted
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/share/boost
-          df -h "$RUNNER_TEMP"
       - name: Initialize runner-local cache directories
         run: |
           printf 'CCACHE_DIR=%s/nexus-ccache\nCARGO_HOME=%s/nexus-cargo\n' "$RUNNER_TEMP" "$RUNNER_TEMP" >> "$GITHUB_ENV"
@@ -106,7 +103,10 @@ jobs:
         with:
           name: nexus-auxiliary
           path: ${{ runner.temp }}
-      - run: tar -xJf "$RUNNER_TEMP/auxiliary.tar.xz" -C "$RUNNER_TEMP"
+      - name: Extract verified auxiliary input and remove only its redundant archive
+        run: |
+          tar -xJf "$RUNNER_TEMP/auxiliary.tar.xz" -C "$RUNNER_TEMP"
+          rm -- "$RUNNER_TEMP/auxiliary.tar.xz"
       - name: Check exact clean source and build policy
         run: |
           node nexus/check-source.mjs
@@ -119,6 +119,8 @@ jobs:
           path: ${{ runner.temp }}/nexus-ccache
           key: ${{ steps.cache-plan.outputs.key }}
           restore-keys: ${{ steps.cache-plan.outputs.restore-prefix }}
+      - name: Require measured disk headroom before SDK compilation
+        run: bash nexus/ci/runner-space.sh --check
       - name: Build coherent pinned SDK runtime
         id: compile
         run: node nexus/build-runtime.mjs "$RUNNER_TEMP/nexus-auxiliary" "$RUNNER_TEMP/nexus-work" "$RUNNER_TEMP/nexus-output"
