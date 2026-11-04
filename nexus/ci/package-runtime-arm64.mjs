@@ -8,6 +8,7 @@ import {readJson,sourceEnvironment,verifyInputs} from '../inputs.mjs';
 import {fileHash,treeHash,assertPortable} from './provenance.mjs';
 import {verifyXml2Source} from '../xml2-source.mjs';
 import {sourceArchiveArgs} from './source-archive.mjs';
+import {noticeModuleInventory,verifySourceNoticeArchive,verifySourceNotices} from '../source-notices.mjs';
 const {inputs:packagingInputs}=await verifyInputs();
 const [outputArg,validationArg]=process.argv.slice(2);
 if(process.env.GITHUB_REF!=='refs/heads/main'||!/^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPOSITORY||'')||!/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA||'')||!/^\d+$/.test(process.env.GITHUB_RUN_ID||''))throw Error('Packaging requires an exact main GitHub runtime build');
@@ -28,6 +29,10 @@ if(built.inputs.xml2Source){
 }
 const media=await readJson(built.aux+'/media/media-manifest.json');
 if(await fileHash(built.aux+'/media/ffmpeg-'+media.version+'.tar.xz')!==media.sourceSha256)throw Error('Corresponding FFmpeg source changed');
+// Preflight: a blocked or incomplete notice inventory must fail before any
+// candidate artifact is created. Existing outputs are never removed here.
+const noticeFamily=built.inputs.variant?.family??'nexus',noticeInventory=noticeModuleInventory(built.graph);
+await verifySourceNotices({project:built.source+'/nexus',sourceRoot:built.source,family:noticeFamily,inventory:noticeInventory});
 const env={...sourceEnvironment(),XZ_OPT:'-T2'};
 function tar(args){execFileSync('tar',args,{env,stdio:'inherit',timeout:20*60*1000});}
 const binary=built.name+'-aarch64.tar.xz',source=built.name+'-source.tar.xz';
@@ -37,6 +42,9 @@ tar(sourceArchiveArgs(output+'/'+source,built.source,built.aux,built.prepared,me
 const listing=execFileSync('tar',['-tJf',output+'/'+source],{encoding:'utf8',maxBuffer:32*1024*1024,timeout:120000}).trim().split('\n');
 if(listing.some(n=>path.isAbsolute(n)||n.split('/').some(v=>v==='..'||v==='.git'))||!listing.includes('source/.gitmodules')||!listing.includes('source/wine/dlls/xgameruntime/CMakeLists.txt')||!listing.includes('source/nexus/licenses/GCC-runtime-copyright'))throw Error('Corresponding source archive incomplete');
 if(built.inputs.xml2Source&&!['xgr-xml2-source/parser.c','xgr-xml2-source/COPYING','xgr-xml2-source/AUTHORS','xgr-xml2-source.json'].every(name=>listing.includes(name)))throw Error('Strict XML corresponding source missing');
+// The archive carries no .git metadata, so the declared pins, notice paths,
+// uniqueness, regularity and content bytes are verified from the real archive.
+await verifySourceNoticeArchive({project:built.source+'/nexus',sourceRoot:built.source,family:noticeFamily,inventory:noticeInventory,listing,archive:output+'/'+source});
 const files=[];
 for(const name of [binary,source]){
   const checksum=name.replace(/\.tar\.xz$/,'.sha512sum');

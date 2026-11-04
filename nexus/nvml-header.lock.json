@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "component": "wine-nvml",
+  "variant": "nexus-cachyos",
+  "module": "nvidia-libs/wine-nvml",
+  "moduleCommit": "a1a7d8fac0e054122cbaf9205c9bee33f5831015",
+  "name": "nvml.h",
+  "version": "610.43.02",
+  "declaredTag": "610.43.02",
+  "declaredBy": "nvidia-libs/wine-nvml/src/make_nvml default version argument",
+  "repository": "https://github.com/NVIDIA/nvidia-settings",
+  "commit": "5b341a9e54f08ac324e148e1e7e102030e42b1c4",
+  "url": "https://raw.githubusercontent.com/NVIDIA/nvidia-settings/5b341a9e54f08ac324e148e1e7e102030e42b1c4/src/nvml.h",
+  "sha256": "31a26e3ce6f0b98a76cea38a3cf28aa112a20cfb37e9057786c768712d6a487f",
+  "bytes": 795795,
+  "gitBlobSha1": "43c908fade9d5516e9ffc61a266b891f51ccc0fe"
+}

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {repository} from '../inputs.mjs';
-import {sourceInitializationArgs, sourceInventory} from './initialize-source.mjs';
+import {sourceInitializationArgs, sourceInventory, parseSourceInitializationArguments} from './initialize-source.mjs';
 import {sourceModulePlan} from '../source-module-plan.mjs';
 import {sourceArchiveArgs} from './source-archive.mjs';
 test('source initialization supplies the upstream-enabled modules and skips the default-disabled ones',()=>{
@@ -61,6 +61,17 @@ test('the committed pinned inventory keeps only the upstream-enabled component s
  const args=sourceInitializationArgs(inventory,'nexus-cachyos');
  for(const modulePath of Object.keys(expected))assert.ok(args.includes(modulePath),modulePath);
  for(const module of excluded)assert.equal(args.includes(module.path),false,module.path);
+});
+test('explicit optional source features extend the fetch plan without changing the default',()=>{
+ assert.deepEqual(parseSourceInitializationArguments(['--plan']),{initialize:false,enable:[]});
+ assert.deepEqual(parseSourceInitializationArguments(['--initialize']),{initialize:true,enable:[]});
+ assert.deepEqual(parseSourceInitializationArguments(['--plan','--enable-optional=steam-audio']),{initialize:false,enable:['steam-audio']});
+ assert.deepEqual(parseSourceInitializationArguments(['--initialize','--enable-optional=steam-audio,zluda-libs']),{initialize:true,enable:['steam-audio','zluda-libs']});
+ for(const argv of [[],['--other'],['--plan','--enable-optional='],['--plan','--enable-optional=extras'],['--plan','--enable-optional=steam-audio','extra'],['--plan','--enable-optional=steam-audio,steam-audio']])assert.throws(()=>parseSourceInitializationArguments(argv));
+ const inventory=sourceInventory();
+ const args=sourceInitializationArgs(inventory,'nexus-cachyos',{enable:['steam-audio']});
+ for(const module of inventory.filter(module=>module.path.startsWith('steam-audio/')))assert.ok(args.includes(module.path),module.path);
+ for(const module of inventory.filter(module=>module.path.startsWith('zluda-libs/')))assert.equal(args.includes(module.path),false,module.path);
 });
 test('corresponding source keeps every required module and adds no new exclusion',()=>{
  const args=sourceArchiveArgs('/tmp/source.tar.xz','/source','/aux','/work','4.4.8');

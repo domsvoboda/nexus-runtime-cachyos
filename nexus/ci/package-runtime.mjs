@@ -9,6 +9,7 @@ import {sourceArchiveArgs} from './source-archive.mjs';
 import {distributionIdentity,distributionName} from './distribution-identity.mjs';
 import {verifyPortableGlib} from '../portable-glib.mjs';
 import {verifyPortableLibva} from '../portable-libva.mjs';
+import {noticeModuleInventory,verifySourceNoticeArchive,verifySourceNotices} from '../source-notices.mjs';
 const {inputs:packagingInputs}=await verifyInputs();
 const identity=distributionIdentity(packagingInputs);
 const [outputArg,validationArg]=process.argv.slice(2);
@@ -32,6 +33,10 @@ if(built.inputs.xml2Source){
 const media=await readJson(built.aux+'/media/media-manifest.json');
 if(await fileHash(built.aux+'/media/ffmpeg-'+media.version+'.tar.xz')!==media.sourceSha256)throw Error('Corresponding FFmpeg source changed');
 if(built.inputs.variant?.family==='nexus-cachyos'){await verifyPortableGlib(built.aux+'/portable-glib');await verifyPortableLibva(built.aux+'/portable-libva');}
+// Preflight: a blocked or incomplete notice inventory must fail before any
+// candidate artifact is created. Existing outputs are never removed here.
+const noticeFamily=built.inputs.variant?.family??'nexus',noticeInventory=noticeModuleInventory(built.graph);
+await verifySourceNotices({project:built.source+'/nexus',sourceRoot:built.source,family:noticeFamily,inventory:noticeInventory});
 const env={...sourceEnvironment(),XZ_OPT:'-T2'};
 function tar(args){execFileSync('tar',args,{env,stdio:'inherit',timeout:20*60*1000});}
 const binary=built.name+'-x86_64.tar.xz',source=built.name+'-source.tar.xz';
@@ -42,6 +47,9 @@ const listing=execFileSync('tar',['-tJf',output+'/'+source],{encoding:'utf8',max
 if(listing.some(n=>path.isAbsolute(n)||n.split('/').some(v=>v==='..'||v==='.git'))||!listing.includes('source/.gitmodules')||!listing.includes('source/wine/dlls/xgameruntime/CMakeLists.txt')||!listing.includes('source/nexus/licenses/GCC-runtime-copyright')||!listing.includes('source-module-plan.json'))throw Error('Corresponding source archive incomplete');
 if(built.inputs.variant?.family==='nexus-cachyos'&&!['portable-glib/glib-2.84.4.tar.xz','portable-glib/manifest.json','portable-glib/COPYING','portable-libva/libva-2.22.0.tar.bz2','portable-libva/manifest.json','portable-libva/COPYING'].every(name=>listing.includes(name)))throw Error('Portable GLib corresponding source missing');
 if(built.inputs.xml2Source&&!['xgr-xml2-source/parser.c','xgr-xml2-source/COPYING','xgr-xml2-source/AUTHORS','xgr-xml2-source.json'].every(name=>listing.includes(name)))throw Error('Strict XML corresponding source missing');
+// The archive carries no .git metadata, so the declared pins, notice paths,
+// uniqueness, regularity and content bytes are verified from the real archive.
+await verifySourceNoticeArchive({project:built.source+'/nexus',sourceRoot:built.source,family:noticeFamily,inventory:noticeInventory,listing,archive:output+'/'+source});
 const files=[];
 for(const name of [binary,source]){
   const checksum=name.replace(/\.tar\.xz$/,'.sha512sum');

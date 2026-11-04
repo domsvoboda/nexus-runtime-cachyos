@@ -19,14 +19,17 @@ test('variant keeps the upstream-enabled namespaces and excludes only the defaul
 test('source module planning rejects alias traversal, duplicate paths and mutable pins',()=>{
  for(const modules of [[{path:'../wine',commit:pin}],[{path:'wine',commit:'main'}],[{path:'wine',commit:pin},{path:'wine',commit:pin}]])assert.throws(()=>sourceModulePlan(modules,'nexus-cachyos'));
  assert.throws(()=>sourceModulePlan([],'unknown'));
+ assert.throws(()=>sourceModulePlan([],'nexus-cachyos',{enable:'steam-audio'}));
 });
 test('classification follows the pinned Makefile.in default assignments, not the guard branches',()=>{
  const makefile=fs.readFileSync(path.join(repository,'Makefile.in'),'utf8');
  const lines=makefile.split('\n');
  const assignments=lines.map(line=>/^(WITHOUT_[A-Z_]+)\s*(\?=|:=|=)\s*(.*)$/.exec(line.trim())).filter(Boolean);
  // ZLUDA and steam-audio are disabled by a default assignment. Removing a
- // configure opt-out cannot enable ZLUDA because its default stays 1.
+ // configure opt-out cannot enable ZLUDA because its default stays 1. Both keep
+ // the upstream ?= operator so an explicit opt-in still wins.
  assert.deepEqual(assignments.map(match=>[match[1],match[3].trim()]),[['WITHOUT_STEAM_AUDIO','1'],['WITHOUT_ZLUDA_LIBS','1']]);
+ assert.deepEqual(assignments.map(match=>match[2]),['?=','?=']);
  const defaults=new Map(assignments.map(match=>[match[1],match[3].trim()]));
  for(const name of ['WITHOUT_EXTRAS','WITHOUT_NVIDIA_LIBS','WITHOUT_VKLAYERS'])assert.equal(defaults.has(name),false,`${name} must not have a default assignment`);
  for(const name of ['WITHOUT_EXTRAS','WITHOUT_NVIDIA_LIBS','WITHOUT_ZLUDA_LIBS','WITHOUT_VKLAYERS'])assert.ok(lines.some(line=>line.trim()===`ifneq ($(${name}),1)`),`${name} guard missing`);
@@ -42,4 +45,5 @@ test('classification follows the pinned Makefile.in default assignments, not the
  const plan=sourceModulePlan(modules,'nexus-cachyos');
  assert.deepEqual(plan.excluded.map(module=>module.path).sort(),pinnedExcluded.map(prefix=>prefix+'module'));
  assert.deepEqual(plan.required.map(module=>module.path),['wine','extras/module','nvidia-libs/module','vklayers/module']);
+ assert.deepEqual(plan.enabledOptional,[]);
 });

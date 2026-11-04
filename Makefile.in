@@ -1346,7 +1346,7 @@ endif # WITHOUT_EXTRAS
 ## steam-audio
 ##
 
-WITHOUT_STEAM_AUDIO := 1
+WITHOUT_STEAM_AUDIO ?= 1
 ifneq ($(WITHOUT_STEAM_AUDIO),1)
 include $(SRC)/steam-audio/build-steam-audio.mk
 endif # WITHOUT_STEAM_AUDIO
@@ -2007,7 +2007,7 @@ endif
 ## default_pfx
 ##
 
-default_pfx: wine gst_good gst_bad gst_ugly gst_libav gst_plugins_rs lsteamclient steamexe vrclient wineopenxr $(WINEOPENXR64_JSON) dxvk dxvk-nvapi dxvk-igdext vkd3d-proton
+default_pfx: wine gst_good gst_bad gst_libav gst_plugins_rs lsteamclient steamexe vrclient wineopenxr $(WINEOPENXR64_JSON) dxvk dxvk-nvapi dxvk-igdext vkd3d-proton
 	find $(DST_LIBDIR)/wine -type f -execdir chmod a-w '{}' '+'
 	rm -rf $(abspath $(DIST_PREFIX))
 	rm -rf $(abspath $(DIST_PREFIX_ARM64))
