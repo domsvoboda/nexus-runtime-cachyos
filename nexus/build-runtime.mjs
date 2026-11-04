@@ -82,3 +82,5 @@ for(const stage of sdkBuildPlan(build,epoch,jobs,redist,target.hostTools,inputs.
 await collectRuntimeDependencySources(path.join(redist,'files'),work);
 await verifyAuxiliary(aux,inputs,target);
 await assembleRuntime({work,build,redist,source,wine,aux,output,name,inputs,graph,auxiliary,lockHash,target,localBuild});
+
+if(localBuild)await fs.writeFile(path.join(output,'LOCAL_ONLY.json'),JSON.stringify({schema:1,localBuild:true,publishable:false,sourceGraph:graph},null,2)+'\n',{flag:'wx'});
