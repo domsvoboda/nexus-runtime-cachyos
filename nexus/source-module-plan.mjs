@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: MIT
-const disabledPrefixes=['nvidia-libs/','zluda-libs/','extras/','vklayers/','steam-audio/'];
+// Classification comes from the pinned Makefile.in variable assignments, not
+// from the ifneq guards alone. The pinned upstream enables extras, nvidia-libs
+// and vklayers by default: their guards compare an unset WITHOUT_* value, and no
+// default assignment disables them. steam-audio (WITHOUT_STEAM_AUDIO := 1) and
+// zluda-libs (WITHOUT_ZLUDA_LIBS ?= 1) are disabled by the pinned defaults, so
+// the Nexus variant keeps exactly those two namespaces excluded and the rest
+// required. Removing a configure opt-out cannot enable ZLUDA, its default is 1.
+const disabledPrefixes=['steam-audio/','zluda-libs/'];
 export function sourceModulePlan(modules,variant){
   if(variant!==undefined&&variant!=='nexus-cachyos')throw Error('Unknown source variant');
   if(!Array.isArray(modules)||new Set(modules.map(x=>x.path)).size!==modules.length)throw Error('Invalid source module inventory');

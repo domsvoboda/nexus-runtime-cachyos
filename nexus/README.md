@@ -20,9 +20,18 @@ Source tests require CMake, GNU Make, rsync, GCC and both MinGW architectures.
 The complete build additionally requires the pinned Proton SDK and Docker or
 rootless Podman. Auxiliary native libraries must target glibc 2.35 or older.
 
-From a clean `main` checkout, initialize only the 35 required pinned modules
-and their recursive dependencies. Optional modules excluded by the source plan
-are not needed:
+On this branch, the additional module expansion is not ready for building or
+distribution: the license and notice inventory for the newly enabled extras,
+NVIDIA library and Vulkan layer components is still incomplete. Existing CachyOS
+build and validation results do not cover this expanded component set.
+
+From a clean checkout of this WIP branch, initialize the 50 proposed pinned
+modules and their recursive dependencies. Main keeps its existing 35-module set;
+the 50-module plan and the upstream-enabled CachyOS component set (extras, NVIDIA
+libraries and Vulkan layers) belong to this branch only. This branch build passes
+no WITHOUT_* opt-outs. steam-audio and ZLUDA stay excluded because the pinned
+upstream Makefile disables both by default
+(`WITHOUT_STEAM_AUDIO := 1`, `WITHOUT_ZLUDA_LIBS ?= 1`):
 
 ```sh
 node nexus/ci/initialize-source.mjs --initialize
@@ -50,8 +59,9 @@ pass. A different source commit requires a new build.
 Auxiliary dependencies are cached by their recipe, input locks, architecture and
 runner image. Restored dependencies are verified before use.
 
-This source line is experimental and has no built or installable variant yet.
-Only conservative Linux x86_64 with both Windows ABIs is in the current build
-plan. ARM64, wow64 and optional vendor/extras stacks are not enabled. Exact
-CachyOS, Nexus Wine and XGameRuntime revisions are recorded in inputs.lock.json.
-The existing Nexus default runtime is unchanged.
+The source plan covers conservative Linux x86_64 with both Windows ABIs. ARM64
+and wow64 are not enabled. The upstream-enabled CachyOS extras, NVIDIA libraries
+and Vulkan layers are part of this branch plan, while steam-audio and ZLUDA remain
+disabled by the pinned upstream defaults. A candidate containing the newly
+enabled modules has not been built or validated yet. Exact CachyOS, Nexus Wine
+and XGameRuntime revisions are recorded in inputs.lock.json.
