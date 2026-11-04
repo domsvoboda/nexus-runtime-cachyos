@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+import {verifyXgrFixtures,readXgrResult} from './xgr-fixture-coverage.mjs';
+import {verifyHttpCancellationFixtures,assertHttpCancellationCoverage} from './http-cancellation-coverage.mjs';
 import fs from 'node:fs/promises';
 import {assertWaiterRunner,verifyWaiterFixtures,assertWaiterResult} from './waiter-fixtures.mjs';
 import {hasCompleteHttpCoverage} from './http-coverage.mjs';
@@ -18,6 +20,8 @@ await fs.mkdir(work,{recursive:false});await fs.chmod(work,0o700);
 const fixtureProof=await readJson(fixtures+'/fixtures.json');
 if(fixtureProof.sdk!==built.inputs.sdk||JSON.stringify(fixtureProof.sourceGraph)!==JSON.stringify(built.graph))throw Error('Test fixtures do not match the selected SDK/source graph');
 for(const [file,expected]of Object.entries(fixtureProof.hashes))if(await fileHash(fixtures+'/'+file)!==expected)throw Error('Changed test fixture');
+await verifyHttpCancellationFixtures(fixtures,fixtureProof.hashes);
+await verifyXgrFixtures(fixtures,fixtureProof.hashes);
 await verifyWaiterFixtures(fixtures,built.inputs,fixtureProof.hashes);
 // Verify already assembled notices without mutating the inventoried runtime.
 await verifySdkNotices(runtime,project);
@@ -54,6 +58,7 @@ try{
     await fs.copyFile(dll,bin+'/xgameruntime.dll',fs.constants.COPYFILE_EXCL);
     for(const gate of ['component','authentication','user-contracts','store']){
       await execute(abi+'-'+gate,process.execPath,[scripts+'/test-'+gate+'.mjs',directory,...(gate==='component'?[]:[engine])]);
+      if(gate==='store'||gate==='component')await readXgrResult(directory,gate);
       if(gate==='component'&&built.inputs.variant){
         const groups=(await fs.readdir(directory)).filter(name=>name.startsWith('nexus-component-test-'));
         if(groups.length!==1)throw Error('Ambiguous composite waiter result group');
@@ -80,7 +85,8 @@ try{
   // Recheck exact result thresholds independently of each runner's exit status.
   const dirs=await fs.readdir(work),single=async(prefix,name)=>{const d=dirs.filter(x=>x.startsWith(prefix));if(d.length!==1)throw Error('Missing result group');return readJson(work+'/'+d[0]+'/'+name);};
   const wine=await single('wine-contract-','results.json'),http=await single('runtime-http2-','results.json'),graphics=await single('runtime-dxvk-','result.json'),media=await readJson(work+'/media/results.json');
-  if(!wine.passed||wine.results.length!==22||wine.results.some(r=>!r.passed)||![64,32].every(bits=>wine.results.some(r=>r.name==='package-id-'+bits&&r.checks.length===3&&r.checks.every((n,i)=>n>=[2478,6,24][i]))&&wine.results.some(r=>r.name==='applicationdata-'+bits&&r.checks.length===3&&r.checks.every((n,i)=>n>=[45,7,25][i])))||!hasCompleteHttpCoverage(http)||graphics.code!==0||graphics.timeout||!graphics.summary.some(x=>/^DXVK COMPUTE CHECKS 40 FAILURES 0\s*$/.test(x))||!media.h264||!media.aac||!media.bundledLibraries)throw Error('Native result coverage incomplete');
+  assertHttpCancellationCoverage(wine);
+  if(!wine.passed||wine.results.length!==28||wine.results.some(r=>!r.passed)||![64,32].every(bits=>wine.results.some(r=>r.name==='pending-shutdown-'+bits&&r.checks.length===1&&r.checks[0]>=113)&&wine.results.some(r=>r.name==='package-id-'+bits&&r.checks.length===3&&r.checks.every((n,i)=>n>=[2478,6,24][i]))&&wine.results.some(r=>r.name==='applicationdata-'+bits&&r.checks.length===3&&r.checks.every((n,i)=>n>=[45,7,25][i])))||!hasCompleteHttpCoverage(http)||graphics.code!==0||graphics.timeout||!graphics.summary.some(x=>/^DXVK COMPUTE CHECKS 40 FAILURES 0\s*$/.test(x))||!media.h264||!media.aac||!media.bundledLibraries)throw Error('Native result coverage incomplete');
   passed=true;
 }finally{
   proof.passed=passed;await fs.writeFile(work+'/results.json',JSON.stringify(proof,null,2)+'\n',{flag:'wx',mode:0o600});console.log('VALIDATION_RESULT '+work+'/results.json');
