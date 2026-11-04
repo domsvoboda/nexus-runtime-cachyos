@@ -8,6 +8,7 @@ import {project,repository} from '../inputs.mjs';
 import {cachePlan} from './cache-plan.mjs';
 import {validateGateResults} from './provenance.mjs';
 import {sourceArchiveArgs} from './source-archive.mjs';
+import {TEST_GROUPS,NATIVE_TEST_FILES,buildPlan} from './source-check-plan.mjs';
 import os from 'node:os';
 const sdk='registry.gitlab.steamos.cloud/proton/steamrt4/sdk/x86_64@sha256:'+'a'.repeat(64);
 test('cache is bounded and namespace depends on immutable SDK, not source revision',()=>{
@@ -38,9 +39,27 @@ test('full candidate workflow is main-only, read-only and cannot promote',()=>{
   assert.match(text,/actions\/cache\/restore@v4/);assert.match(text,/actions\/cache\/save@v4/);assert.match(text,/!cancelled\(\)/);assert.match(text,/CCACHE_MAXSIZE: 3G/);assert.match(text,/CCACHE_COMPILERCHECK: content/);
   assert.match(text,/runs-on: ubuntu-22\.04/);assert.match(text,/xvfb-run -a node nexus\/ci\/validate-runtime/);
 });
-test('source checks include distribution policies without packaging or full SDK work',()=>{
+test('source checks run the audited four-group plan with full native coverage and no packaging or full SDK work',async()=>{
   const text=fs.readFileSync(path.join(repository,'.github/workflows/nexus-source.yml'),'utf8');
-  assert.ok(text.includes('nexus/ci/*.test.mjs'));assert.doesNotMatch(text,/build-fixtures|validate-runtime|package-runtime|cache\/save|upload-artifact/);
+  // The audited plan runner is the only test entry point. The old literal glob
+  // must not return and no packaging or full SDK command may be added.
+  assert.match(text,/node nexus\/ci\/source-check-plan\.mjs --mode "\$SOURCE_CHECK_MODE"/);
+  assert.ok(!text.includes('nexus/ci/*.test.mjs'));
+  assert.ok(!/node --test nexus\/\*\.test\.mjs/.test(text));
+  assert.doesNotMatch(text,/build-fixtures|validate-runtime|package-runtime|cache\/save|upload-artifact/);
+  // The plan still enumerates all four reviewed groups, including this ci
+  // directory, in both modes so distribution policy tests keep running.
+  assert.deepEqual([...TEST_GROUPS],['nexus','nexus/tests','nexus/ci','nexus/runtime-compat']);
+  const full=await buildPlan({mode:'full'}),sourceOnly=await buildPlan({mode:'source-only'});
+  for(const group of TEST_GROUPS)assert.ok(full.selected.some(file=>file.startsWith(group+'/')),'full plan enumerates '+group);
+  assert.ok(full.selected.includes('nexus/ci/distribution.test.mjs'));
+  assert.ok(sourceOnly.selected.includes('nexus/ci/distribution.test.mjs'));
+  // Full mode preserves every native fixture; source-only omits exactly those.
+  assert.equal(full.selected.length,full.allFiles.length);
+  for(const file of NATIVE_TEST_FILES)assert.ok(full.selected.includes(file),'full plan retains '+file);
+  assert.deepEqual([...sourceOnly.omittedNative],[...NATIVE_TEST_FILES]);
+  for(const file of NATIVE_TEST_FILES)assert.ok(!sourceOnly.selected.includes(file));
+  assert.equal(sourceOnly.selected.length,full.selected.length-NATIVE_TEST_FILES.length);
 });
 test('Ubuntu 24 validation installs and checks i386 crypto and fonts before compiling',()=>{
   const text=fs.readFileSync(path.join(repository,'.github/workflows/nexus-runtime.yml'),'utf8');
@@ -94,7 +113,7 @@ test('both ABI crypto probes are compiled, executed and required in native valid
   const probe=fs.readFileSync(project+'/runtime-tests/crypto-probe.c','utf8');
   assert.ok(fixture.includes("for(const bits of [64,32])compile('crypto-'+bits+'-probe.exe','crypto-probe.c',['-Wextra','-Werror','-lncrypt','-lbcrypt'],bits)"));
   assert.ok(contracts.includes("await execute('crypto-'+bits,tests+'/crypto-'+bits+'-probe.exe',[],{},40)"));
-  assert.ok(validator.includes('wine.results.length!==22'));
+  assert.ok(validator.includes('wine.results.length!==28'));
   for(const name of ['NCryptCreatePersistedKey','NCryptSignHash','NCryptVerifySignature','BCryptSignHash','BCryptVerifySignature','BCRYPT_ECDSA_P521_ALGORITHM','BCRYPT_RSA_ALGORITHM'])
     assert.ok(probe.includes(name),name);
   assert.doesNotMatch(probe,/todo_wine|win_skip|XUser|XGameSave|XODUS/);
@@ -120,7 +139,7 @@ test('both ABI ApplicationData cache, identity and negative folder checks are ma
   assert.ok(fixture.includes("compile('applicationdata-'+bits+'-probe.exe','applicationdata-probe.c'"));
   assert.ok(contracts.includes("await execute('applicationdata-'+bits,tests+'/applicationdata-'+bits+'-probe.exe')"));
   for(const text of [contracts,validator])assert.ok(text.includes('[45,7,25]'));
-  assert.ok(validator.includes('wine.results.length!==22'));
+  assert.ok(validator.includes('wine.results.length!==28'));
   for(const api of ['IApplicationData2_get_LocalCacheFolder','IApplicationData_get_LocalFolder','GetCurrentPackageFamilyName','ERROR_DIRECTORY','APPMODEL_ERROR_NO_PACKAGE','first==second','IStorageItem_get_DateCreated'])assert.ok(probe.includes(api),api);
   assert.doesNotMatch(probe,/todo_wine|win_skip|XUser|XGameSave/);
 });
@@ -151,4 +170,13 @@ test('actual source archive preserves nested source and gitlinks, never credenti
     for(const name of ['portable-libva/manifest.json','portable-libva/COPYING','portable-libva/libva-2.22.0.tar.bz2','portable-glib/manifest.json','portable-glib/COPYING','portable-glib/glib-2.84.4.tar.xz','runtime-dependency-sources/manifest.json','runtime-dependency-sources/codec.orig.tar.xz'])assert.ok(names.includes(name),name);
     assert.ok(!names.some(n=>n.split('/').includes('.git')||n.includes('download.zip')||n.includes('binary.so')));
   }finally{fs.rmSync(root,{recursive:true});}
+});
+
+test('pending shutdown is checked in both ABIs without weakening existing native gates',()=>{
+  const fixture=fs.readFileSync(project+'/ci/build-fixtures.mjs','utf8');
+  const runner=fs.readFileSync(project+'/ci/wine-contracts.mjs','utf8');
+  const validator=fs.readFileSync(project+'/ci/validate-runtime.mjs','utf8');
+  assert.ok(fixture.includes("for(const bits of [64,32])compile('pending-shutdown-'+bits+'-probe.exe'"));
+  assert.ok(runner.includes("execute('pending-shutdown-'+bits,tests+'/pending-shutdown-'+bits+'-probe.exe',[],{},113)"));
+  assert.ok(validator.includes("r.name==='pending-shutdown-'+bits&&r.checks.length===1&&r.checks[0]>=113"));
 });
