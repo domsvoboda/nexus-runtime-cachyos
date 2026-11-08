@@ -7,13 +7,15 @@ import {sourceModulePlan} from './source-module-plan.mjs';
 import {sourceInventory} from './ci/initialize-source.mjs';
 import {project,repository,run,readJson,sha256,verifyInputs,verifySourceGraph,sourceEnvironment} from './inputs.mjs';
 import {verifyAuxiliary} from './auxiliary.mjs';
-import {sdkConfigureArgs,sdkContainerOption,sdkBuildJobs,sdkBuildPlan,captureSdkConfiguration,verifyPreparedSdkConfiguration} from './sdk-build-plan.mjs';
+import {sdkConfigureArgs,sdkContainerOption,sdkBuildJobs,sdkBuildPlan,sdkHostEnvironment,captureSdkConfiguration,verifyPreparedSdkConfiguration} from './sdk-build-plan.mjs';
 import {assembleRuntime} from './assemble-runtime.mjs';
 import {requireShaderVersion} from './shader-version.mjs';
 import {targetArgument} from './target.mjs';
 import {llvmMingwPin} from './llvm-mingw.mjs';
 import {prepareFexSource,verifyPreparedFex} from './fex-source.mjs';
+import {nvmlPreflightRequired} from './nvml-preflight.mjs';
 import {collectRuntimeDependencySources} from './runtime-dependency-sources.mjs';
+import {CACHYOS_FAMILY,verifyLocalFeatureMatrix} from './build-config-parity.mjs';
 const localBuild=process.argv.includes('--local');
 if(localBuild&&Object.keys(process.env).some(key=>key.startsWith('GITHUB_')))throw Error('Local builds cannot run in GitHub workflows');
 if(!localBuild&&process.env.GITHUB_REF&&process.env.GITHUB_REF!=='refs/heads/main')throw Error('Distribution builds are main-only');
@@ -23,6 +25,12 @@ if(!auxArg||!workArg||!outputArg||args.length>4||resumeArg&&resumeArg!=='--resum
 const aux=await fs.realpath(auxArg),work=path.resolve(workArg),output=path.resolve(outputArg),resume=resumeArg==='--resume';
 const {inputs}=await verifyInputs(),lockHash=sha256(await fs.readFile(path.join(project,'inputs.lock.json'))),sdk=inputs[target.sdk];
 if(inputs.variant&&!inputs.variant.architectures.includes(target.name))throw Error('Runtime variant architecture is not reviewed');
+// The local build configuration must match the pinned official feature
+// contract before any work directory, configure step or source preparation.
+// This runs before the fresh/resume split, so neither path can prepare or
+// resume a tree whose feature defaults or build fragments were silently
+// changed.
+if(inputs.variant?.family===CACHYOS_FAMILY)verifyLocalFeatureMatrix(repository);
 const verifiedAux=await verifyAuxiliary(aux,inputs,target),auxiliary=verifiedAux.manifest;
 if(target.name==='arm64'&&llvmMingwPin().sha256!==auxiliary.toolchain.sha256)throw Error('Auxiliary toolchain differs from the workflow pin');
 const engine=sdkContainerOption(process.env.NEXUS_CONTAINER_ENGINE).split('=')[1],jobs=sdkBuildJobs(process.env.NEXUS_BUILD_JOBS??availableParallelism());
@@ -45,7 +53,7 @@ if(!resume){
   await fs.mkdir(path.join(wine,'include/nghttp2'));
   for(const header of Object.keys(auxiliary.headers))await fs.copyFile(path.join(aux,'components/nghttp2',header),path.join(wine,'include/nghttp2',header),fs.constants.COPYFILE_EXCL);
   await fs.mkdir(build);
-  run(path.join(source,'configure.sh'),sdkConfigureArgs({name,engine,sdk,arch:target.name,variant:inputs.variant?.family}),build,inputs.variant?{env:{...sourceEnvironment(),CFLAGS:'-O2 -march=nocona -mtune=core-avx2',RUSTFLAGS:'-Copt-level=3 -Ctarget-cpu=nocona'}}:{});
+  run(path.join(source,'configure.sh'),sdkConfigureArgs({name,engine,sdk,arch:target.name,variant:inputs.variant?.family}),build,inputs.variant?{env:{...sourceEnvironment(),...sdkHostEnvironment(inputs.variant.family)}}:{});
   const sdkConfiguration=captureSdkConfiguration(await fs.readFile(path.join(build,'Makefile'),'utf8'),{source,name,sdk,engine,arch:target.name,variant:inputs.variant?.family});
   await fs.writeFile(stateFile,JSON.stringify({schema:1,localBuild,graph,name,epoch,engine,arch:target.name,source,inputsSha256:lockHash,sdkConfiguration,xml2Source:xml2SourceState,...verifiedAux},null,2)+'\n',{flag:'wx'});
 }else{
@@ -78,6 +86,18 @@ for(const [file,expected]of Object.entries(inputs.shader.expectedSources))if(sha
 for(const [file,expected]of Object.entries(auxiliary.headers))if(sha256(await fs.readFile(path.join(wine,'include/nghttp2',file)))!==expected)throw Error('Prepared HTTP header mismatch');
 try{await fs.lstat(output);throw Error('Output already exists');}catch(error){if(error.code!=='ENOENT')throw error;}
 const redist=path.join(build,'redist-'+graph.proton.slice(0,8));
+// NVML host preflight: bind the pinned header to the real module Git identity
+// after the source checks and before the first SDK recipe. The container step
+// requires this proof; it does not read Git metadata. The preflight is demanded
+// only when the prepared source graph contains the pinned module, parsed from
+// the exact module path so a trailing submodule description cannot hide it, and
+// a missing audited lock or helper is then a hard error instead of a silent
+// skip.
+if(nvmlPreflightRequired(graph.submodules)){
+  const nvmlLock=path.join(source,'nexus/nvml-header.lock.json'),nvmlHelper=path.join(source,'nexus/prepare-nvml-header.sh');
+  for(const input of [nvmlLock,nvmlHelper])await fs.access(input).catch(()=>{throw Error('Pinned NVML module requires its audited host preflight input: '+input);});
+  run(nvmlHelper,['host-prepare','--source',source,'--proof',path.join(build,'nvml-header-proof.json')],build);
+}
 for(const stage of sdkBuildPlan(build,epoch,jobs,redist,target.hostTools,inputs.xml2Source?path.join(work,xml2Directory):undefined)){console.log(stage.name);run('make',stage.args,build,{timeout:stage.timeout});}
 await collectRuntimeDependencySources(path.join(redist,'files'),work);
 await verifyAuxiliary(aux,inputs,target);

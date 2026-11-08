@@ -1277,7 +1277,6 @@ class CompatData:
                     g_session.dlloverrides["nvapi64"] = "n"
                     g_session.dlloverrides["nvofapi64"] = "n"
                     g_session.dlloverrides["nvapi"] = "n"
-                    g_session.dlloverrides["nvcuda"] = "b"
                 elif use_zluda:
                     try_copy(g_proton.arch_pe_dir("wine/zluda-libs/zluda", False) + "nvapi64.dll", "drive_c/windows/system32",
                             prefix=self.prefix_dir, track_file=tracked_files, link_debug=True)
@@ -2474,7 +2473,7 @@ class Session:
                 s = s + ";" + dll + "=" + setting
             else:
                 s = dll + "=" + setting
-        append_to_env_str(self.env, "WINEDLLOVERRIDES", s, ";")
+        prepend_to_env_str(self.env, "WINEDLLOVERRIDES", s, ";")
 
         if platform.machine() == 'aarch64':
             self.env.setdefault("FEX_DISKCACHE", "1")

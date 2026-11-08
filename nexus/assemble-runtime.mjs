@@ -6,14 +6,21 @@ import {copySdkRedistribution,makeSdkLinksPortable} from './runtime-copy.mjs';
 import {targets} from './target.mjs';
 import {writeFamilyManifest} from './family-manifest.mjs';
 import {verifyXml2Source,xml2Directory} from './xml2-source.mjs';
-import {stageSdkNotices} from './sdk-notices.mjs';
+import {stageSdkNotices,sdkNoticeNames} from './sdk-notices.mjs';
+import {noticeModuleInventory,verifySourceNotices,stageSourceNotices} from './source-notices.mjs';
 import {moduleCapabilities} from './module-capabilities.mjs';
 import {buildPackageRegistration} from './package-registration.mjs';
 import {verifyRuntimeDependencies} from './runtime-dependency-sources.mjs';
 import {stagePortableGlib} from './portable-glib.mjs';
 import {stagePortableLibva} from './portable-libva.mjs';
+import {verifyRuntimePayload} from './runtime-payload-contract.mjs';
 export async function assembleRuntime({work,build,redist,source,wine,aux,output,name,inputs,graph,auxiliary,lockHash,target=targets.x86_64,localBuild=false}){
 const proton={requiresBackendVersion:inputs.requiresBackendVersion};
+const media=await readJson(path.join(aux,'media/media-manifest.json'));
+const noticeSources=[['runtime-compat-LICENSE',path.join(project,'LICENSE')],['NOTICE',path.join(project,'NOTICE')],['nghttp2-LICENSE',path.join(aux,'components/nghttp2-LICENSE')],['Wine-LICENSE',path.join(wine,'COPYING.LIB')],['TomCrypt-LICENSE',path.join(wine,'libs/tomcrypt/LICENSE')],['xgameruntime-LICENSE',path.join(wine,'dlls/xgameruntime/LICENSE')],['FFmpeg-COPYING.LGPLv2.1',path.join(aux,'media/ffmpeg-'+media.version+'/COPYING.LGPLv2.1')]];
+// Verify every source notice input before the output directory exists, then
+// stage only the bytes that were already read and hashed here.
+const sourceNotices=await verifySourceNotices({project,sourceRoot:source,family:inputs.variant?.family??'nexus',inventory:noticeModuleInventory(graph),reservedNames:['FEX-LICENSE',...noticeSources.map(([noticeName])=>noticeName),...sdkNoticeNames,'XGR-XML2-COPYING','GLib-COPYING','portable-glib.json','libva-COPYING','portable-libva.json']});
 await fs.mkdir(output,{recursive:false});
 const runtime=path.join(output,name);
 await copySdkRedistribution(redist,runtime);
@@ -47,7 +54,6 @@ for(const name of prefixComponents){
 }
 // Keep portable media separate from the SDK-built Wine. Existing libraries are
 // never silently replaced by the auxiliary bundle.
-const media=await readJson(path.join(aux,'media/media-manifest.json'));
 for(const [triplet,architecture]of Object.entries(media.architectures)){
 const libdir=path.join(files,'lib',triplet);
 for(const [soname,item] of Object.entries(architecture.libraries)){
@@ -61,7 +67,8 @@ for(const [soname,item] of Object.entries(architecture.libraries)){
 const notices=path.join(files,'share/doc/nexus-runtime');await fs.mkdir(notices,{recursive:true});
 // Keep the emulator's pinned upstream notice with the binary redistribution.
 await fs.copyFile(path.join(source,'FEX/LICENSE'),path.join(notices,'FEX-LICENSE'),fs.constants.COPYFILE_EXCL);
-for(const [name,sourceFile] of [['runtime-compat-LICENSE',path.join(project,'LICENSE')],['NOTICE',path.join(project,'NOTICE')],['nghttp2-LICENSE',path.join(aux,'components/nghttp2-LICENSE')],['Wine-LICENSE',path.join(wine,'COPYING.LIB')],['TomCrypt-LICENSE',path.join(wine,'libs/tomcrypt/LICENSE')],['xgameruntime-LICENSE',path.join(wine,'dlls/xgameruntime/LICENSE')],['DXVK-LICENSE',path.join(source,'dxvk/LICENSE')],['VKD3D-LICENSE',path.join(source,'vkd3d/COPYING')],['FFmpeg-COPYING.LGPLv2.1',path.join(aux,'media/ffmpeg-'+media.version+'/COPYING.LGPLv2.1')]])await fs.copyFile(sourceFile,path.join(notices,name));
+for(const [noticeName,sourceFile] of noticeSources)await fs.copyFile(sourceFile,path.join(notices,noticeName));
+await stageSourceNotices(notices,sourceNotices.notices);
 await stageSdkNotices(runtime,project);
 if(inputs.xml2Source){
  await verifyXml2Source(work,inputs.xml2Source,path.join(wine,'dlls/xgameruntime/cmake/xml2.lock.json'));
@@ -88,10 +95,14 @@ for(const arch of target.peArchitectures){
 if(localBuild)Object.assign(metadata,{localBuild:true,diagnosticOnly:true,promotable:false});
 metadata.realGameTest=false;metadata.stableApproved=false;
 metadata.baseWineSha256=sha256(await fs.readFile(path.join(files,target.bin,'wine.nexus-original')));
-await fs.writeFile(path.join(runtime,'XODUS_NEXUS_PATCH.json'),JSON.stringify(metadata,null,2)+'\n',{flag:'wx'});
 const links=await makeSdkLinksPortable(runtime,build);
+// Fail closed when an upstream feature output, configuration layer or entry
+// selector is missing. The contract runs on the final assembled tree.
+const payloadContract=await verifyRuntimePayload(runtime,{family:inputs.variant?.family??'nexus',arch:target.name,pins:new Map(noticeModuleInventory(graph).map(({path:modulePath,commit})=>[modulePath,commit]))});
+metadata.payloadContract=payloadContract;
+await fs.writeFile(path.join(runtime,'XODUS_NEXUS_PATCH.json'),JSON.stringify(metadata,null,2)+'\n',{flag:'wx'});
 const familyReceipt=inputs.variant?await writeFamilyManifest(runtime,{family:inputs.variant.family,sourceRepository:inputs.variant.sourceRepository,sourceCommit:graph.proton,sourceLockSha256:lockHash}):undefined;
-await fs.writeFile(path.join(output,'built.json'),JSON.stringify({schema:1,...(localBuild?{localBuild:true,diagnosticOnly:true,promotable:false}:{}),name,runtime,metadata,inputs,graph,source,prepared:work,aux,links,familyReceipt},null,2)+'\n',{flag:'wx'});
+await fs.writeFile(path.join(output,'built.json'),JSON.stringify({schema:1,...(localBuild?{localBuild:true,diagnosticOnly:true,promotable:false}:{}),name,runtime,metadata,inputs,graph,source,prepared:work,aux,links,payloadContract,familyReceipt},null,2)+'\n',{flag:'wx'});
 console.log('Built an isolated Experimental candidate. Native validation is still required.');
 
 

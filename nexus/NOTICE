@@ -23,3 +23,19 @@ credentials, Wine prefixes or saved games are part of this repository.
 This experimental variant additionally derives from CachyOS/proton-cachyos
 and CachyOS/wine-cachyos at the exact revisions in inputs.lock.json. CachyOS
 and its component contributors retain all existing copyright and license notices.
+
+The vkBasalt DDS loader header derives from the SOIL (Simple OpenGL Image
+Library) DDS augmentation by lonesock, whose official distribution states Public
+Domain (archived primary page:
+https://web.archive.org/web/20191231210156id_/http://www.lonesock.net/soil.html).
+The adaptation was introduced under vkBasalt's zlib license and is distributed
+unchanged. The public-domain grant requires no separate license text; this
+acknowledgment records the provenance.
+
+The bundled Pyroveil layer, including its hacks configuration and roundtrip
+cache data, is distributed under the project MIT license (Copyright (c) 2025
+Hans-Kristian Arntzen for Valve Corporation). The Monster Hunter Wilds benchmark
+roundtrip cache was added by the upstream maintainer in pyroveil commit
+162599efc8a96bf6534647ef6c8ea37bf4b910e4 together with its configuration, and
+the pinned tree carries no per-file exclusion, third-party notice or separate
+license for that data. The bytes are redistributed unchanged.

@@ -1,0 +1,1101 @@
+{
+  "schema": 1,
+  "kind": "source-notices",
+  "family": "nexus-cachyos",
+  "status": "ready",
+  "coverage": [
+    "extras/d7vk",
+    "extras/discord-rpc-bridge",
+    "extras/dxvk-low-latency",
+    "extras/dxvk-sarek",
+    "extras/vkd3d-low-latency",
+    "nvidia-libs/nvcuda",
+    "nvidia-libs/nvcuda32",
+    "nvidia-libs/nvenc",
+    "nvidia-libs/nvenc32",
+    "nvidia-libs/wine-nvml",
+    "nvidia-libs/wine-nvoptix",
+    "vklayers/Vulkan-Utility-Libraries",
+    "vklayers/low_latency_layer",
+    "vklayers/pyroveil",
+    "vklayers/vkbasalt"
+  ],
+  "modules": [
+    {
+      "path": "extras/d7vk",
+      "commit": "ff123cb08ff1fcf6575a6ef8fb79d824a84e56c4",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "a5cb1a6ded7d2d7e92d550ba28edd21be2d1d4044662b399887351023e30ce64"
+        },
+        {
+          "path": "include/openvr/LICENSE",
+          "sha256": "db64bcf32be090ca9d1ea7e3df5541a07f4cf5729206b44e57a1182f05554f3f"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "include/openvr/openvr.hpp",
+          "sha256": "7299c4b9feefaa3e9415a7c496f2ec8ff88ecc75a2390ce0fb04cefbb971e7ba"
+        }
+      ]
+    },
+    {
+      "path": "extras/discord-rpc-bridge",
+      "commit": "6aa60772a5241c7bd1b8d38f026b2a5168e0f93c",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "b1cee0c2bf34040f050e54f609e7f12f0bdf8cce528811f673fdd3f472aaae6f"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-low-latency",
+      "commit": "d533db09df35453ed1baa1b0c7d86de2b67bf504",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "a5cb1a6ded7d2d7e92d550ba28edd21be2d1d4044662b399887351023e30ce64"
+        },
+        {
+          "path": "include/openvr/LICENSE",
+          "sha256": "db64bcf32be090ca9d1ea7e3df5541a07f4cf5729206b44e57a1182f05554f3f"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "include/openvr/openvr.hpp",
+          "sha256": "7299c4b9feefaa3e9415a7c496f2ec8ff88ecc75a2390ce0fb04cefbb971e7ba"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-sarek",
+      "commit": "0c0e8f6f62c7cb37dbf5d38413517efa00c08fef",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "240101b852af584ded719e7335a36f9a3aae3ac816774cf3f460c00d2c88c161"
+        },
+        {
+          "path": "include/openvr/LICENSE",
+          "sha256": "db64bcf32be090ca9d1ea7e3df5541a07f4cf5729206b44e57a1182f05554f3f"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "include/openvr/openvr.hpp",
+          "sha256": "7299c4b9feefaa3e9415a7c496f2ec8ff88ecc75a2390ce0fb04cefbb971e7ba"
+        }
+      ]
+    },
+    {
+      "path": "extras/vkd3d-low-latency",
+      "commit": "f4e0518cdd35fee0629e25367422bcbc17cbc122",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "AUTHORS",
+          "sha256": "825ecce7c240aa4824cd80f27640cba19c74f7187b1ecdf8c1a2645ddb4d30c3"
+        },
+        {
+          "path": "COPYING",
+          "sha256": "f51ad4bf5a3bd2b5f383fe28150b23d01e6f5d7b620b194150e7c6a620c43c1f"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+        },
+        {
+          "path": "include/private/nvShaderExtnEnums.h",
+          "sha256": "9e2532fdc36281fd6923084078ad55fd4474337bf1ee3d9e123335d3b5158165"
+        },
+        {
+          "path": "libs/vkd3d-shader/checksum.c",
+          "sha256": "82c197fad09bff029611054722b7d79fa967d2557c0a41a266c6caeaa25ec699"
+        },
+        {
+          "path": "libs/vkd3d/shaders/cs_gdeflate.comp",
+          "sha256": "f8f0604bfead10174668da01d2bcc26aac3e7d4bf226c381b8d9ee1e2aa70d58"
+        }
+      ]
+    },
+    {
+      "path": "nvidia-libs/nvcuda",
+      "commit": "8982084679efc390d217a7f67553f1e319eefe10",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "12c8623c49b58e6169f2f4d2178bf207c389da23c921106eaa44138fd19c09bf"
+        },
+        {
+          "path": "dlls/nvcuda/encryption.c",
+          "sha256": "bca1d78b12a8fe1f515bf0de0f7a1ce1bc79e375493f2e6d423d7c86c8c30d1c"
+        },
+        {
+          "path": "dlls/nvcuda/encryption.h",
+          "sha256": "ce76ed491205b1362661b5e3ab2c5386d6ff1d893423010c91c15c7053fe624d"
+        },
+        {
+          "path": "dlls/nvcuda/function_mappings.c",
+          "sha256": "d40f80b8bf758bc22515833d2c00e02991e4e49afc0e735756b8089d7dfce43f"
+        },
+        {
+          "path": "dlls/nvcuda/function_mappings.h",
+          "sha256": "73f9508c30e703d935b52b4e6bb7fdc3ea722d04f054a4346a602bdf71762d25"
+        },
+        {
+          "path": "dlls/nvcuda/internal.c",
+          "sha256": "7e7dd8fd518147ec8e585a2282c0d0c84bca707a2e9779f0d24cbb1aef377a6c"
+        },
+        {
+          "path": "dlls/nvcuda/nvcuda.c",
+          "sha256": "3abe45216ed94f207a04f3f2ee3a632654cc223e19bc9cf5747e7a580ecae342"
+        },
+        {
+          "path": "dlls/nvcuda/nvcuda.h",
+          "sha256": "d416112bfacc82c65cb7a3ef069f7c4ff0a1c5bccb09f84b505808e595f3e21f"
+        },
+        {
+          "path": "dlls/nvcuda_fdll/nvcuda.rc",
+          "sha256": "8cb455e6fdd71aceb304f81aa254e5e1d43437aa047b9ddab365f6b04e2e2a12"
+        },
+        {
+          "path": "include/cuda.h",
+          "sha256": "2e51fd9058329dfb6d9cdf4c25fc2d49957a01d1a04be7959781aacc90823f47"
+        }
+      ]
+    },
+    {
+      "path": "nvidia-libs/nvcuda32",
+      "commit": "1993a7c745e08f8bfb11502b7489dd7fba70a08f",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "12c8623c49b58e6169f2f4d2178bf207c389da23c921106eaa44138fd19c09bf"
+        },
+        {
+          "path": "dlls/nvcuda/internal.c",
+          "sha256": "02d0fe2a733574e5493384df24bda192afb1a705d821ca110d4185ab9b21c99a"
+        },
+        {
+          "path": "dlls/nvcuda/nvcuda.c",
+          "sha256": "4b84200f119ab9f14e83c7629f8443fd9859336918df024be01037ad8bbbd327"
+        },
+        {
+          "path": "dlls/nvcuda/nvcuda.h",
+          "sha256": "d416112bfacc82c65cb7a3ef069f7c4ff0a1c5bccb09f84b505808e595f3e21f"
+        },
+        {
+          "path": "include/cuda.h",
+          "sha256": "bf5441a541db603c2657b25f8016492d2b590003bdfe52f57d063e997204e75e"
+        }
+      ]
+    },
+    {
+      "path": "nvidia-libs/nvenc",
+      "commit": "09ec9e1c8b25a351e415a6d0361bfacad0fd710c",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "12c8623c49b58e6169f2f4d2178bf207c389da23c921106eaa44138fd19c09bf"
+        },
+        {
+          "path": "dlls/nvcuvid/nvcuvid.c",
+          "sha256": "1977a3196abfa8eb42633fd571a7adc9f9ace462caf0196a1bb9bb30e54f5060"
+        },
+        {
+          "path": "dlls/nvcuvid_fdll/nvcuvid.rc",
+          "sha256": "e09eb1770a287a23868a6cb112e5f3a6b4871ed7d098b32cb0ce1dc32df8f1fb"
+        },
+        {
+          "path": "dlls/nvencodeapi/nvencodeapi.c",
+          "sha256": "eebb86d72313aba966c874def673480193626adfb4c5d912519e3da08d77624a"
+        },
+        {
+          "path": "dlls/nvencodeapi_fdll/nvencodeapi.rc",
+          "sha256": "76c5f1723056e2334239c9318033ca783b43bd78350aeb3a989f8dc063aaf670"
+        },
+        {
+          "path": "include/cuda.h",
+          "sha256": "311fd283063b9c680c3a82d8d5823da3e3f944456a87c1e141bf888b43765c55"
+        },
+        {
+          "path": "include/cuviddec.h",
+          "sha256": "52ea3d9403d866b5d7481c642a1eeb9f9cdbc1da14a82581578c72d9ad88857a"
+        },
+        {
+          "path": "include/nvcuvid.h",
+          "sha256": "3555f1a44cdfc25bff42e6afddefc3be1e542479727a4d8b0a6abb0eb7435a60"
+        },
+        {
+          "path": "include/nvencodeapi.h",
+          "sha256": "606201ec834341584ad05f8d617df79c387035062c8898d578e7b5291352dfc9"
+        }
+      ]
+    },
+    {
+      "path": "nvidia-libs/nvenc32",
+      "commit": "ff7220eb8a19ea7e0db8bd5c401a50b606712ff7",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "12c8623c49b58e6169f2f4d2178bf207c389da23c921106eaa44138fd19c09bf"
+        },
+        {
+          "path": "dlls/nvcuvid/nvcuvid.c",
+          "sha256": "1977a3196abfa8eb42633fd571a7adc9f9ace462caf0196a1bb9bb30e54f5060"
+        },
+        {
+          "path": "dlls/nvencodeapi/nvencodeapi.c",
+          "sha256": "c301bbf2a8a146825544b819c1b391c26730c91e3e15e02eb232e886dc94d1c4"
+        },
+        {
+          "path": "include/cuda.h",
+          "sha256": "311fd283063b9c680c3a82d8d5823da3e3f944456a87c1e141bf888b43765c55"
+        },
+        {
+          "path": "include/cuviddec.h",
+          "sha256": "52ea3d9403d866b5d7481c642a1eeb9f9cdbc1da14a82581578c72d9ad88857a"
+        },
+        {
+          "path": "include/nvcuvid.h",
+          "sha256": "3555f1a44cdfc25bff42e6afddefc3be1e542479727a4d8b0a6abb0eb7435a60"
+        },
+        {
+          "path": "include/nvencodeapi.h",
+          "sha256": "606201ec834341584ad05f8d617df79c387035062c8898d578e7b5291352dfc9"
+        }
+      ]
+    },
+    {
+      "path": "nvidia-libs/wine-nvml",
+      "commit": "a1a7d8fac0e054122cbaf9205c9bee33f5831015",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+        },
+        {
+          "path": "src/nvml_610.43.02.h",
+          "sha256": "31a26e3ce6f0b98a76cea38a3cf28aa112a20cfb37e9057786c768712d6a487f"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "README.md",
+          "sha256": "550b067e095c0fd90ca6df2716593481264c727612c053defdb6fef461ecf4e0"
+        }
+      ]
+    },
+    {
+      "path": "nvidia-libs/wine-nvoptix",
+      "commit": "ea2e23341ab84bcbebbf191f7f04cac13f1ac95b",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "AUTHORS",
+          "sha256": "fce1f1bc7d3fdda4d5447a76930401624c68015b33ddc00dcf1907f4124ecc23"
+        },
+        {
+          "path": "COPYING.LIB",
+          "sha256": "e237fa56668030e928551ddd60f05df5fe957f75eab874bbd017e085ed722e7c"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "3da4607d761bc3bd69b11d1dc51e405f75be217303330ad9658ec493d3a45fb1"
+        },
+        {
+          "path": "src/nvoptix_22.h",
+          "sha256": "37e8a87bc78b74a94528203133dfd818b2eb6fd7fe398e45009b9d5551098504"
+        },
+        {
+          "path": "src/nvoptix_36.h",
+          "sha256": "e0a6b4f8f75731f5af72127a37e0f3015c1752a633861006d7f11799f90dc007"
+        },
+        {
+          "path": "src/nvoptix_41.h",
+          "sha256": "a9c71f4787be6565a64a12cd4633a04c439601948a83028217476428f1a35b33"
+        },
+        {
+          "path": "src/nvoptix_47.h",
+          "sha256": "4b5338ac2d597239864ded837f33605de04cf1296a57431bfb2c4c8232a330e0"
+        },
+        {
+          "path": "src/nvoptix_55.h",
+          "sha256": "0b583ea475d277d9490b77752da5018bff5a58d727c32d523299d0f5212c2041"
+        },
+        {
+          "path": "src/nvoptix_60.h",
+          "sha256": "dfd62f83a8ab816f82f925180c5b27c3849b0642b9a31c3d3bed22cb4b560e75"
+        },
+        {
+          "path": "src/nvoptix_68.h",
+          "sha256": "f74216acecf7604f1d9c0249ae0a61ac5914eac81d4c6775ae17780f794efc74"
+        },
+        {
+          "path": "src/nvoptix_84.h",
+          "sha256": "91429d9092815a312e03b165611ae40f421fc5e185dc935c882b16134f7461dd"
+        },
+        {
+          "path": "src/nvoptix_87.h",
+          "sha256": "2c2d24efe781453bc28d5a920f5720d127b795742dd50890a84edc4de6ca6fe9"
+        },
+        {
+          "path": "src/nvoptix_93.h",
+          "sha256": "308896c2fc8646167d11edacad78e8e41a19bbe40a1fa6743ff24d73a12073ce"
+        },
+        {
+          "path": "src/nvoptix_105.h",
+          "sha256": "73d476f365f7e0df7f37fdd37aea8f1be73e0d8ad0185d44536fa412f1d097b7"
+        },
+        {
+          "path": "src/nvoptix_118.h",
+          "sha256": "ce30bfad9c126e3559d4e2d2def34c82cabdb27d2ecfa961f0695c685fc8da8f"
+        },
+        {
+          "path": "src/nvoptix.h",
+          "sha256": "63dcb3c46119d935163655fbd1f58a53a60a5b7b9404407049429a1b12eb3668"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "README.md",
+          "sha256": "7405258f3ece32a8ac4ca20d44144edcf942f824944e73331d9253654c7941d8"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/Vulkan-Utility-Libraries",
+      "commit": "b538fb5b08513aa78346cd414ad5e576a2a3e920",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "69760673abf91cfd0280ae73739a29c078f493804d9016a122b3b189b48ad6e6"
+        },
+        {
+          "path": "LICENSES/Apache-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": ".reuse/dep5",
+          "sha256": "5e20204c46cd8de038ee1176c6a72e9453efb20fe2eb6601fb0609f9bebf74c7"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/low_latency_layer",
+      "commit": "3138b14ebd059cd540444771dd184fbf7ead2a12",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "289453205ae84d10bc6bd2e63c9056be1e79480b7ab01201778b2b5548c6c17c"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/pyroveil",
+      "commit": "e1f547372cf1b9d14da56621716d2137088d0061",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "20bab0c079d29b2ddfea376499519994c045ed54182d64b46837fcebdf636e3f"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "hacks/ac-shadows-nvidia-570-stable/pyroveil.json",
+          "sha256": "af40a8c0b7cb242cb2dac1c5de5bff582c0e5a840e71a49ae052cd631d25ff8a"
+        },
+        {
+          "path": "hacks/ffvii-rebirth-nvidia/pyroveil.json",
+          "sha256": "0d98bdc110b8d6272db39b77c37c4d4acb612e3cebd24eb5f5b60d9e182f667f"
+        },
+        {
+          "path": "hacks/monster-hunter-wilds-benchmark-nv/cache/97ccc02f3db80d2e.asm",
+          "sha256": "c30ef26ff78a88ef6f3cdc855156957c3274d75746e75ab5f76d1dbb72afc4a6"
+        },
+        {
+          "path": "hacks/monster-hunter-wilds-benchmark-nv/cache/97ccc02f3db80d2e.old.asm",
+          "sha256": "955a9d5053a55a736f23cdf9860550d6fd1ee4b58fa61fb5ea1b7b875dfae6fd"
+        },
+        {
+          "path": "hacks/monster-hunter-wilds-benchmark-nv/cache/97ccc02f3db80d2e.orig.spv",
+          "sha256": "54afe7f3b6d5fa382abf8502652f33bbbdbe411570750b35c04bd47830f40286"
+        },
+        {
+          "path": "hacks/monster-hunter-wilds-benchmark-nv/cache/97ccc02f3db80d2e.spv",
+          "sha256": "f80b18d10be652071df9391d7623b318e395db38fd46ebade7d1154b11fd3872"
+        },
+        {
+          "path": "hacks/monster-hunter-wilds-benchmark-nv/pyroveil.json",
+          "sha256": "ef80b9e1739725267a296cecf9d20df8f41f33e5a4c69c7b5437ac9b4a00b706"
+        },
+        {
+          "path": "hacks/roadcraft-nvidia-570-stable/pyroveil.json",
+          "sha256": "983c247c87535df1f10532d4b660a0e93b8acf8cac248a3406516dea73632ced"
+        },
+        {
+          "path": "hacks/surviving-mars-relaunched-nv-580-stable/pyroveil.json",
+          "sha256": "12d064db40ca5cc67f720aef9704ee04aa0d9ec5f376cc752eef98f0c238e1af"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/vkbasalt",
+      "commit": "4f97f09ffe91900e6ca136cc26cf7966f8f6970d",
+      "distribution": "binary",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cf582e04a38da010fa0dbbe95224f87f01301ed5aaf454749771b2dbe433ef63"
+        },
+        {
+          "path": "src/reshade/LICENSE.md",
+          "sha256": "237ded5b8344f820113efab1e65e91e1f159d9202c5b4856606a0590d3ffdab0"
+        },
+        {
+          "path": "src/stb_image.h",
+          "sha256": "beef2cbf861508e6a74e7cfce2410f2258c1b829c3a1d81b052f71896ff93b93"
+        },
+        {
+          "path": "src/stb_image_resize.h",
+          "sha256": "8ccae59e7826502791140b4074cb3bf6bb85246d06b384093c4efd52fbb4d638"
+        },
+        {
+          "path": "src/shader/smaa.h",
+          "sha256": "4db53d92ef0b45661f8450303589ffabce93c352cae4282a6f32dd2b80efbeb9"
+        },
+        {
+          "path": "src/shader/fxaa3_11.h",
+          "sha256": "7d64b7a8e72dba17925186e840bdd010c8d30da08dc60df33f3f068173479953"
+        },
+        {
+          "path": "src/shader/cas.frag.glsl",
+          "sha256": "cf184e34afe26832224868c25f25552911145e5ef6bea2027878e4f207f5b15a"
+        },
+        {
+          "path": "src/shader/deband.frag.glsl",
+          "sha256": "91655a4684f33947b6b8c0274fa5dd72dce279ce16ea7281013e21949b8f4849"
+        },
+        {
+          "path": "src/shader/dls.frag.glsl",
+          "sha256": "ca047122cbc4891409cede269b96a5b9bc10eec9f7dd82a2dc176800f9584bc0"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "src/stb_image_dds.h",
+          "sha256": "84d487d505f8294f9718dfcbee301c9ff026006303dafe217994ad63fed9e5ce"
+        }
+      ]
+    },
+    {
+      "path": "extras/d7vk/include/native/directx",
+      "commit": "9df86f2341616ef1888ae59919feaa6d4fad693d",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "COPYING.MinGW-w64.txt",
+          "sha256": "f38e6194bd3bfa1b654f118e5acefe0aead437bbe669eee43957ccc65a7127f1"
+        }
+      ]
+    },
+    {
+      "path": "extras/d7vk/include/spirv",
+      "commit": "04f10f650d514df88b76d25e83db360142c7b174",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "6d7c9e9d7d12c8d3753bdb24417b84819ba4d6c2f025c37948113d86dc81eef9"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744"
+        }
+      ]
+    },
+    {
+      "path": "extras/d7vk/include/vulkan",
+      "commit": "8864cdc896bbc2a9b6eb36b3218fc9ef57908d77",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "ac24e5ea920e4318e4d02c4086ae51f53cfb03feed06c18df1019e7ada1ec7bc"
+        },
+        {
+          "path": "LICENSES/Apache-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "1ca3502222d967f3be5751c55f6b7ee735b5383909c3b501495f54b216dbf227"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": ".reuse/dep5",
+          "sha256": "cdf8c8274de23c2fd0eb05c8afdaa51b0ba2fe6369505959ee7b1147be22f626"
+        }
+      ]
+    },
+    {
+      "path": "extras/d7vk/subprojects/dxbc-spirv",
+      "commit": "bf14419e5fa7eacb817b7b632f03cb61d61bbad7",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "0f8a5e687bea942a30a8e39b9915294fbe44eca866e71307a9b7083ee0e69ad8"
+        }
+      ]
+    },
+    {
+      "path": "extras/d7vk/subprojects/libdisplay-info",
+      "commit": "275e6459c7ab1ddd4b125f28d0440716e4888078",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "15b396244e58830c5614b9394f4deccfe684970cd507f299383ab57ad339eedd"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "test/data/LICENSE.CC-BY-4.0",
+          "sha256": "4014722237c90b6f8effc35b6e04a47815c03ef14ee24683d6c1dfd0b9b644d0"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-low-latency/include/native/directx",
+      "commit": "9df86f2341616ef1888ae59919feaa6d4fad693d",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "COPYING.MinGW-w64.txt",
+          "sha256": "f38e6194bd3bfa1b654f118e5acefe0aead437bbe669eee43957ccc65a7127f1"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-low-latency/include/spirv",
+      "commit": "04f10f650d514df88b76d25e83db360142c7b174",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "6d7c9e9d7d12c8d3753bdb24417b84819ba4d6c2f025c37948113d86dc81eef9"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-low-latency/include/vulkan",
+      "commit": "8864cdc896bbc2a9b6eb36b3218fc9ef57908d77",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "ac24e5ea920e4318e4d02c4086ae51f53cfb03feed06c18df1019e7ada1ec7bc"
+        },
+        {
+          "path": "LICENSES/Apache-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "1ca3502222d967f3be5751c55f6b7ee735b5383909c3b501495f54b216dbf227"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": ".reuse/dep5",
+          "sha256": "cdf8c8274de23c2fd0eb05c8afdaa51b0ba2fe6369505959ee7b1147be22f626"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-low-latency/subprojects/dxbc-spirv",
+      "commit": "bf14419e5fa7eacb817b7b632f03cb61d61bbad7",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "0f8a5e687bea942a30a8e39b9915294fbe44eca866e71307a9b7083ee0e69ad8"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-low-latency/subprojects/libdisplay-info",
+      "commit": "275e6459c7ab1ddd4b125f28d0440716e4888078",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "15b396244e58830c5614b9394f4deccfe684970cd507f299383ab57ad339eedd"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "test/data/LICENSE.CC-BY-4.0",
+          "sha256": "4014722237c90b6f8effc35b6e04a47815c03ef14ee24683d6c1dfd0b9b644d0"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-sarek/include/spirv",
+      "commit": "ce9dfb01496073a02d74581ae909384763b41ff8",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "6d7c9e9d7d12c8d3753bdb24417b84819ba4d6c2f025c37948113d86dc81eef9"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-sarek/include/vulkan",
+      "commit": "afe9eb980aa928a66d1c9c06f38c55dd59868720",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "ac24e5ea920e4318e4d02c4086ae51f53cfb03feed06c18df1019e7ada1ec7bc"
+        },
+        {
+          "path": "LICENSES/Apache-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "1ca3502222d967f3be5751c55f6b7ee735b5383909c3b501495f54b216dbf227"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": ".reuse/dep5",
+          "sha256": "cdf8c8274de23c2fd0eb05c8afdaa51b0ba2fe6369505959ee7b1147be22f626"
+        }
+      ]
+    },
+    {
+      "path": "extras/vkd3d-low-latency/khronos/SPIRV-Headers",
+      "commit": "f88a2d766840fc825af1fc065977953ba1fa4a91",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "6d7c9e9d7d12c8d3753bdb24417b84819ba4d6c2f025c37948113d86dc81eef9"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744"
+        }
+      ]
+    },
+    {
+      "path": "extras/vkd3d-low-latency/khronos/Vulkan-Headers",
+      "commit": "ee2ec5fd83dafce291024683b50dc89219333076",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "95ad366d23fadf701d355bc45fb8b82ae2d700239471d35d41286ac3b08ff903"
+        },
+        {
+          "path": "LICENSES/Apache-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "1ca3502222d967f3be5751c55f6b7ee735b5383909c3b501495f54b216dbf227"
+        }
+      ]
+    },
+    {
+      "path": "extras/vkd3d-low-latency/subprojects/dxil-spirv",
+      "commit": "7dc52786cdb1f53c54dd5c5c2698dff00ea5f0a3",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.MIT",
+          "sha256": "b3ec61378a66f09835a73f53926d9b5cf79a09c9e2fe8bdd0e39aa5403325e1e"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/pyroveil/third_party/glslang",
+      "commit": "963588074b26326ff0426c8953c1235213309bdb",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "adb783e734e906d1f46db5df29991dbde84bdb0ceab502ac2febb44fe3c2b5f4"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "license-checker.cfg",
+          "sha256": "10986bda93996d06b781a5f44d2fb5b37c527a7893e2478683ac89793a4a3caf"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/pyroveil/third_party/rapidjson",
+      "commit": "24b5e7a8b27f42fa16b96fc70aade9106cf7102f",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "license.txt",
+          "sha256": "a140e5d46fe734a1c78f1a3c3ef207871dd75648be71fdda8e309b23ab8b1f32"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "bin/jsonschema/LICENSE",
+          "sha256": "837402bd25fad9b704265801ca3f92566a98157c1f9a7acd6f446299ba1c305a"
+        },
+        {
+          "path": "contrib/natvis/LICENSE",
+          "sha256": "394faaedb93c1da8ecbd61322518834908fee64381117e01a611bf9fac20baa6"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/pyroveil/third_party/shaderc",
+      "commit": "ab0d3ed184e4919a236eecddb6514e4923a5e38f",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "AUTHORS",
+          "sha256": "9fb4b067e4c9a1f91ea1c26465b3d1c6b515cb24860e0dbb719879925a5a1248"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        },
+        {
+          "path": "third_party/LICENSE.glslang",
+          "sha256": "b5a00e94f058edc87e05978329b55730d8689abe61205d9018443d03de4f07da"
+        },
+        {
+          "path": "third_party/LICENSE.spirv-tools",
+          "sha256": "47e20ce182bc68fab1a0cfb129b03c326aaf4f2b6b7905aa9d376d31018bd29f"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "kokoro/linux/license_check.sh",
+          "sha256": "5f832ba83b10050e308cdd072b5de1d873a25b4248c0ab58a0c52420276e06d2"
+        },
+        {
+          "path": "kokoro/linux/license_check_docker.sh",
+          "sha256": "2534ec1a8b4d0c28c4fc8e4712dec2c693681e3261241d35302d0fd9abe02ea7"
+        },
+        {
+          "path": "license-checker.cfg",
+          "sha256": "ff39f110e4b17c6a2e24eacc14a32674c2c1f2385828bdc23a0399d3475fffc8"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/pyroveil/third_party/spirv-cross",
+      "commit": "7918775748c5e2f5c40d9918ce68825035b5a1e1",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "LICENSES/Apache-2.0.txt",
+          "sha256": "44b0a56e80b41a1b0a6bd1292515e806539fd97b30be54c2719e6c763190ab57"
+        },
+        {
+          "path": "LICENSES/LicenseRef-KhronosFreeUse.txt",
+          "sha256": "fbeaca472f4f70e276dd1106ca5097435967a22ad6c1d8200aef7ad9f70aaf3f"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "8f25018489d6fe0dec34a352314c38dc146247b7de65735790f4398a92afa84b"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": ".reuse/dep5",
+          "sha256": "cf51ebe3f7e95c4a15e3e5a214c3c4dbf84997976392102c98cb5a6213dc9e8b"
+        },
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "b89aeb7c2a164a0576786dd2a8b57f2fb628b23981f0a06bd77e2f99a9befa0f"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/pyroveil/third_party/spirv-headers",
+      "commit": "aa6cef192b8e693916eb713e7a9ccadf06062ceb",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ff04ae7e6a468587fe59434fee2e67c0e2a749b592c794b764ff80f30b94a084"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/pyroveil/third_party/spirv-tools",
+      "commit": "a62abcb402009b9ca5975e6167c09f237f630e0e",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "utils/vscode/src/lsp/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ]
+    },
+    {
+      "path": "vklayers/pyroveil/third_party/vulkan-headers",
+      "commit": "234c4b7370a8ea3239a214c9e871e4b17c89f4ab",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "ac24e5ea920e4318e4d02c4086ae51f53cfb03feed06c18df1019e7ada1ec7bc"
+        },
+        {
+          "path": "LICENSES/Apache-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "1ca3502222d967f3be5751c55f6b7ee735b5383909c3b501495f54b216dbf227"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": ".reuse/dep5",
+          "sha256": "cdf8c8274de23c2fd0eb05c8afdaa51b0ba2fe6369505959ee7b1147be22f626"
+        }
+      ]
+    },
+    {
+      "path": "extras/d7vk/subprojects/dxbc-spirv/submodules/spirv_headers",
+      "commit": "c8ad050fcb29e42a2f57d9f59e97488f465c436d",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "6d7c9e9d7d12c8d3753bdb24417b84819ba4d6c2f025c37948113d86dc81eef9"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744"
+        }
+      ]
+    },
+    {
+      "path": "extras/dxvk-low-latency/subprojects/dxbc-spirv/submodules/spirv_headers",
+      "commit": "c8ad050fcb29e42a2f57d9f59e97488f465c436d",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "6d7c9e9d7d12c8d3753bdb24417b84819ba4d6c2f025c37948113d86dc81eef9"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744"
+        }
+      ]
+    },
+    {
+      "path": "extras/vkd3d-low-latency/subprojects/dxil-spirv/third_party/spirv-headers",
+      "commit": "c63848ecf2200425511319fd8bf2c17b751e501e",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "6d7c9e9d7d12c8d3753bdb24417b84819ba4d6c2f025c37948113d86dc81eef9"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744"
+        }
+      ]
+    },
+    {
+      "path": "extras/vkd3d-low-latency/subprojects/dxil-spirv/subprojects/dxbc-spirv",
+      "commit": "8dae2d8573af08378c6059aca3d5987da99d20b5",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "0f8a5e687bea942a30a8e39b9915294fbe44eca866e71307a9b7083ee0e69ad8"
+        }
+      ]
+    },
+    {
+      "path": "extras/vkd3d-low-latency/subprojects/dxil-spirv/subprojects/dxbc-spirv/submodules/spirv_headers",
+      "commit": "c8ad050fcb29e42a2f57d9f59e97488f465c436d",
+      "distribution": "linked",
+      "status": "ready",
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "6d7c9e9d7d12c8d3753bdb24417b84819ba4d6c2f025c37948113d86dc81eef9"
+        }
+      ],
+      "contextFiles": [
+        {
+          "path": "LICENSES/CC-BY-4.0.txt",
+          "sha256": "d557539df68e771cc1eedcc91d13f70fca930e508d11eedcafa4b15db49e3744"
+        }
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "path": "extras/vkd3d-low-latency/subprojects/dxil-spirv/third_party/SPIRV-Cross",
+      "decision": "not-built",
+      "reason": "CLI only, not linked by the dxil-spirv library; not shipped"
+    },
+    {
+      "path": "extras/vkd3d-low-latency/subprojects/dxil-spirv/third_party/SPIRV-Tools",
+      "decision": "not-built",
+      "reason": "CLI only, not linked by the dxil-spirv library; not shipped"
+    },
+    {
+      "path": "vklayers/pyroveil/third_party/rapidjson/thirdparty/gtest",
+      "decision": "not-built",
+      "reason": "rapidjson test dependency only; header-only usage in the layer needs only rapidjson/license.txt"
+    }
+  ],
+  "externalSources": [
+    {
+      "module": "nvidia-libs/wine-nvml",
+      "path": "src/nvml_610.43.02.h",
+      "status": "resolved",
+      "commit": "5b341a9e54f08ac324e148e1e7e102030e42b1c4",
+      "sha256": "31a26e3ce6f0b98a76cea38a3cf28aa112a20cfb37e9057786c768712d6a487f"
+    }
+  ]
+}
