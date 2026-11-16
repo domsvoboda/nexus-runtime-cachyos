@@ -243,6 +243,41 @@ static void filter_map(const char *key)
     if (setenv(key, output, 1)) { perror("Nexus runtime file map"); exit(70); }
     free(output);
 }
+/* The SDK uses this only as the cloud-save lock display label. It is obtained
+ * on every launch, so a stale inherited value never reaches the game, and it
+ * is cleared when the host name is unavailable or unusable. This optional
+ * metadata never gates the launch. */
+static void device_hostname(void)
+{
+    char name[256];
+    size_t length;
+    if (gethostname(name, sizeof(name))) {
+        fprintf(stderr, "Nexus runtime: host name unavailable; no device label sent.\n");
+        unsetenv("NEXUS_DEVICE_HOSTNAME");
+        return;
+    }
+    name[sizeof(name) - 1] = 0;
+    length = strlen(name);
+    if (!length || length >= sizeof(name) - 1) {
+        fprintf(stderr, "Nexus runtime: unusable host name; no device label sent.\n");
+        unsetenv("NEXUS_DEVICE_HOSTNAME");
+        return;
+    }
+    for (size_t i = 0; i < length; ++i) {
+        unsigned char c = (unsigned char)name[i];
+        if (c < 0x20 || c == 0x7f) {
+            fprintf(stderr, "Nexus runtime: unusable host name; no device label sent.\n");
+            unsetenv("NEXUS_DEVICE_HOSTNAME");
+            return;
+        }
+    }
+    if (setenv("NEXUS_DEVICE_HOSTNAME", name, 1)) {
+        /* Display metadata must never gate the launch: drop any stale value
+         * and continue with the game's normal environment. */
+        perror("Nexus runtime device label");
+        unsetenv("NEXUS_DEVICE_HOSTNAME");
+    }
+}
 static int version_override(const char *binary, const char *loader)
 {
     const char *enabled = getenv("NEXUS_GAMING_SERVICES_VERSION_OVERRIDE");
@@ -407,6 +442,7 @@ int main(int argc, char **argv)
             setenv("WINEDLLOVERRIDES", overrides, 1)) return 70;
         free(overrides);
     }
+    device_hostname();
     if (getenv("NEXUS_BOOTSTRAP_DIAGNOSTICS"))
         fprintf(stderr, "NEXUS_BOOTSTRAP sdk=%u appLocal=0\n", staged);
     argv[0] = loader;
