@@ -130,6 +130,32 @@ test('stages exact SDK, preserves owner bytes, filters only replaced FD, preserv
     assert.equal(f.run().status, 23, 'repeated staging is idempotent');
   } finally { await f.close(); }
 });
+test('every launch exports the current host name and overwrites a stale inherited label', async () => {
+  const f = await fixture();
+  const original = path.join(path.dirname(loader), 'wine.nexus-original');
+  const bytes = await fs.readFile(original);
+  const host = os.hostname();
+  try {
+    await fs.writeFile(original, '#!/bin/sh\nprintf "label:%s\\n" "$NEXUS_DEVICE_HOSTNAME"\nexit 23\n', { mode: 0o755 });
+    for (const stale of ['stale-other-machine', undefined]) {
+      const result = f.run({ NEXUS_DEVICE_HOSTNAME: stale });
+      assert.equal(result.status, 23, result.stderr);
+      assert.deepEqual(result.stdout.trimEnd().split('\n'), [`label:${host}`]);
+    }
+    assert.equal(f.run({ NEXUS_DEVICE_HOSTNAME: 'stale-other-machine' }, ['--version']).status, 23);
+  } finally { await fs.writeFile(original, bytes); await f.close(); }
+});
+test('the launch label is refreshed from the host and never carried over stale', async () => {
+  const f = await fixture();
+  const original = path.join(path.dirname(loader), 'wine.nexus-original');
+  const bytes = await fs.readFile(original);
+  try {
+    await fs.writeFile(original, '#!/bin/sh\nprintf "label:%s\\n" "${NEXUS_DEVICE_HOSTNAME-<unset>}"\nexit 23\n', { mode: 0o755 });
+    const result = f.run({ NEXUS_DEVICE_HOSTNAME: 'stale-other-machine', NEXUS_GAMING_SERVICES_VERSION_OVERRIDE: '0' });
+    assert.equal(result.status, 23, result.stderr);
+    assert.deepEqual(result.stdout.trimEnd().split('\n'), ['label:' + os.hostname()]);
+  } finally { await fs.writeFile(original, bytes); await f.close(); }
+});
 test('ordinary Wine arguments and opt-out do not change any files or maps', async () => {
   const f = await fixture();
   try {
