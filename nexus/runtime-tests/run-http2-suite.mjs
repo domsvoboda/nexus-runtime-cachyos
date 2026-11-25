@@ -31,6 +31,9 @@ const noise = Buffer.from(Array.from({ length: body.length }, (_, i) => {
   return (n ^ (n >>> 16)) & 255;
 }));
 const largeGzip = gzipSync(noise);
+// Larger than the client's receive window, so the transfer needs several flow-control refills.
+const largeBody = Buffer.alloc(6 * 1024 * 1024);
+for (let i = 0; i < largeBody.length; i++) largeBody[i] = 97 + i % 26;
 const server = http2.createSecureServer({ key: await fs.readFile(path.join(root, 'server.key')), cert: await fs.readFile(path.join(root, 'server.pem')), allowHTTP1: true });
 const sessions = new Set();
 server.on('session', session => { sessions.add(session); session.on('error', () => {}); session.on('close', () => sessions.delete(session)); });
@@ -81,6 +84,13 @@ server.on('request', (request, response) => {
     write();
   } else if (request.url === '/encoding') send(request.headers['accept-encoding'] === 'gzip' ? 200 : 400, body);
   else if (request.url === '/body') send(200, body);
+  else if (request.url === '/large') send(200, largeBody);
+  else if (request.url === '/window') {
+    // The receive windows the client advertised: the stream setting and the connection window.
+    const session = request.stream?.session;
+    const text = session ? `initial=${session.remoteSettings.initialWindowSize} connection=${session.state.remoteWindowSize}` : '';
+    send(session ? 200 : 400, Buffer.from(text));
+  }
   else if (request.url === '/head') send(405);
   else if (request.url === '/error') send(503);
   else if (request.url === '/redirect') send(307, Buffer.alloc(0), { location: '/body' });
