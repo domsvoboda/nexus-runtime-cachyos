@@ -253,6 +253,77 @@ done:
     if (session) WinHttpCloseHandle(session);
 }
 
+#define LARGE_BODY (6u * 1024 * 1024)
+#define MIN_RECEIVE_WINDOW (1024ul * 1024)
+
+/* A response larger than the receive window, read in uneven pieces. It needs
+ * several flow-control refills and reuses the receive buffer many times. */
+static void large_download(void)
+{
+    static const DWORD pieces[] = { 4093, 16384, 1000, 65536, 7919 };
+    static BYTE buffer[65536];
+    HINTERNET session = WinHttpOpen(L"WinHTTP2-Large-Test", WINHTTP_ACCESS_TYPE_NO_PROXY, NULL, NULL, 0);
+    HINTERNET connection = NULL, request = NULL;
+    DWORD protocol = 99, length, count = 0, total = 0, available = 0;
+    BOOL ok = FALSE;
+    if (!session) goto done;
+    WinHttpSetTimeouts(session, 5000, 5000, 5000, 5000);
+    connection = WinHttpConnect(session, L"localhost", port, 0);
+    if (!connection) goto done;
+    request = WinHttpOpenRequest(connection, L"GET", L"/large", NULL, NULL, NULL, WINHTTP_FLAG_SECURE);
+    if (!request || !WinHttpSendRequest(request, NULL, 0, NULL, 0, 0, 0) || !WinHttpReceiveResponse(request, NULL)) goto done;
+    length = sizeof(protocol);
+    if (!WinHttpQueryOption(request, WINHTTP_OPTION_HTTP_PROTOCOL_USED, &protocol, &length) ||
+        protocol != WINHTTP_PROTOCOL_FLAG_HTTP2) goto done;
+    for (unsigned iteration = 0; iteration < 1000000; iteration++) {
+        if (!WinHttpQueryDataAvailable(request, &available)) goto done;
+        if (!available) break;
+        if (!WinHttpReadData(request, buffer, min(available, pieces[iteration % ARRAYSIZE(pieces)]), &count)) goto done;
+        if (!count) break;
+        if (!pattern(buffer, total, count)) goto done;
+        total += count;
+        if (total > LARGE_BODY) goto done;
+    }
+    ok = total == LARGE_BODY;
+done:
+    printf("CASE large-download-h2 protocol=%lu bytes=%lu\n", protocol, total);
+    check(ok, "large-download-h2");
+    if (request) WinHttpCloseHandle(request);
+    if (connection) WinHttpCloseHandle(connection);
+    if (session) WinHttpCloseHandle(session);
+}
+
+/* The server reports the windows this client advertised. A 64 KiB receive
+ * window limits one stream to window / round-trip time, so large downloads
+ * crawl on ordinary connections, however fast the link is. */
+static void receive_window(void)
+{
+    HINTERNET session = WinHttpOpen(L"WinHTTP2-Window-Test", WINHTTP_ACCESS_TYPE_NO_PROXY, NULL, NULL, 0);
+    HINTERNET connection = NULL, request = NULL;
+    char text[128] = { 0 };
+    DWORD protocol = 99, length, count = 0, total = 0;
+    unsigned long initial = 0, window = 0;
+    BOOL ok = FALSE;
+    if (!session) goto done;
+    WinHttpSetTimeouts(session, 5000, 5000, 5000, 5000);
+    connection = WinHttpConnect(session, L"localhost", port, 0);
+    if (!connection) goto done;
+    request = WinHttpOpenRequest(connection, L"GET", L"/window", NULL, NULL, NULL, WINHTTP_FLAG_SECURE);
+    if (!request || !WinHttpSendRequest(request, NULL, 0, NULL, 0, 0, 0) || !WinHttpReceiveResponse(request, NULL)) goto done;
+    length = sizeof(protocol);
+    if (!WinHttpQueryOption(request, WINHTTP_OPTION_HTTP_PROTOCOL_USED, &protocol, &length) ||
+        protocol != WINHTTP_PROTOCOL_FLAG_HTTP2) goto done;
+    while (total < sizeof(text) - 1 && WinHttpReadData(request, text + total, sizeof(text) - 1 - total, &count) && count) total += count;
+    ok = sscanf(text, "initial=%lu connection=%lu", &initial, &window) == 2 &&
+        initial >= MIN_RECEIVE_WINDOW && window >= MIN_RECEIVE_WINDOW;
+done:
+    printf("CASE receive-window-h2 protocol=%lu stream=%lu connection=%lu\n", protocol, initial, window);
+    check(ok, "receive-window-h2");
+    if (request) WinHttpCloseHandle(request);
+    if (connection) WinHttpCloseHandle(connection);
+    if (session) WinHttpCloseHandle(session);
+}
+
 struct asynchronous {
     HANDLE done, closed;
     BYTE buffer[16384];
@@ -387,6 +458,8 @@ int main(int argc, char **argv)
     decompression_options();
     synchronous("head-h2", L"HEAD", L"/head", FALSE, 405, 0, FALSE, FALSE);
     synchronous("body-h2", L"GET", L"/body", FALSE, 200, 200000, FALSE, FALSE);
+    receive_window();
+    large_download();
     synchronous("post-h2", L"POST", L"/echo", FALSE, 201, 200000, TRUE, FALSE);
     synchronous("stream-post-h2", L"POST", L"/echo", FALSE, 201, 200000, TRUE, TRUE);
     synchronous("fallback-h1", L"GET", L"/body", TRUE, 200, 200000, FALSE, FALSE);
