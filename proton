@@ -991,6 +991,168 @@ class CompatData:
                 os.remove(old)
                 os.symlink(src=link, dst=old)
 
+    def copy_native_text_entry(self, tracked_files):
+        # These optional runtime-owned files are not Wine builtins. Refresh
+        # existing prefixes as well as new ones, including the WOW64 bridge.
+        # Preflight both architecture directories and read every source pair
+        # before the first write. Reject a directory symlink that leaves the
+        # prefix, a destination that aliases a default source directory, and
+        # two architecture directories that resolve to one physical directory.
+        # Retain prior entries and restore the whole pair if a replacement or
+        # the tracking write fails. This is not a crash-atomic transaction or
+        # a journal, and no process-crash guarantee is claimed.
+        default = os.path.join(g_proton.default_pfx_dir, "drive_c/windows")
+        prefix_root = os.path.realpath(self.prefix_dir)
+
+        def physical_identity(path):
+            try:
+                status = os.stat(path)
+            except OSError:
+                return None
+            return (status.st_dev, status.st_ino)
+
+        def read_pair(source_directory):
+            pair = []
+            for name in ("nexus-text-entry.py", "nexus-text-entry-host.exe"):
+                source = os.path.join(source_directory, name)
+                if not os.path.isfile(source):
+                    return []
+                with open(source, "rb") as source_file:
+                    pair.append((name, source_file.read()))
+            return pair
+
+        def snapshot(path):
+            if not file_exists(path, follow_symlinks=False):
+                return ("absent",)
+            if os.path.islink(path):
+                return ("link", os.readlink(path))
+            with open(path, "rb") as existing:
+                content = existing.read()
+            return ("file", content, os.stat(path).st_mode & 0o7777)
+
+        def remove_entry(path):
+            if path is not None and file_exists(path, follow_symlinks=False):
+                os.remove(path)
+
+        def unique_staging_path(path):
+            return path + ".nexus-runtime-" + os.urandom(8).hex()
+
+        def write_staged(path, content):
+            while True:
+                temporary = unique_staging_path(path)
+                try:
+                    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+                except FileExistsError:
+                    continue
+                try:
+                    with os.fdopen(descriptor, "wb") as temporary_file:
+                        temporary_file.write(content)
+                except BaseException:
+                    remove_entry(temporary)
+                    raise
+                return temporary
+
+        def stage_link(path, target):
+            while True:
+                temporary = unique_staging_path(path)
+                try:
+                    os.symlink(target, temporary)
+                except FileExistsError:
+                    continue
+                return temporary
+
+        def stage_prior_entry(path, saved):
+            # Rename rollback needs the prior entry as a staged sibling before
+            # any destination is replaced. A full filesystem then fails here,
+            # while the destination is still intact, instead of failing while
+            # rollback tries to recreate the entry.
+            if saved[0] == "link":
+                return stage_link(path, saved[1])
+            if saved[0] == "file":
+                temporary = write_staged(path, saved[1])
+                try:
+                    os.chmod(temporary, saved[2])
+                except BaseException:
+                    remove_entry(temporary)
+                    raise
+                return temporary
+            return None
+
+        def restore_entry(path, staged_prior):
+            if staged_prior is None:
+                remove_entry(path)
+            else:
+                os.replace(staged_prior, path)
+
+        default_identities = set()
+        for directory in ("system32", "syswow64"):
+            identity = physical_identity(os.path.join(default, directory))
+            if identity is not None:
+                default_identities.add(identity)
+
+        destinations = []
+        destination_identities = []
+        for directory in ("system32", "syswow64"):
+            relative = "drive_c/windows/" + directory
+            destination_directory = os.path.join(self.prefix_dir, relative)
+            if not os.path.isdir(destination_directory):
+                continue
+            if os.path.commonpath((prefix_root, os.path.realpath(destination_directory))) != prefix_root:
+                continue
+            destination_identity = physical_identity(destination_directory)
+            if destination_identity is None:
+                continue
+            destinations.append((destination_directory, destination_identity, directory))
+            destination_identities.append(destination_identity)
+
+        # Alias collisions are rejected before any write, even when only one
+        # architecture currently has source files: a syswow64 directory that
+        # resolves to system32 would install the i386 bridge into the x64
+        # system directory. A destination that is a default source directory
+        # would corrupt the default prefix itself.
+        if len(set(destination_identities)) != len(destination_identities):
+            return
+        if any(identity in default_identities for identity in destination_identities):
+            return
+
+        entries = []
+        for destination_directory, _, directory in destinations:
+            contents = read_pair(os.path.join(default, directory))
+            if contents:
+                entries.append((destination_directory, contents))
+
+        staged = []
+        restored = {}
+        replaced = []
+        tracking_lines = []
+        try:
+            for destination_directory, contents in entries:
+                for name, content in contents:
+                    destination = os.path.join(destination_directory, name)
+                    saved = snapshot(destination)
+                    staged.append((write_staged(destination, content), destination, saved))
+            # Stage every prior entry before the first replacement, so rollback
+            # only renames and does not allocate a replacement while the
+            # filesystem may still be full.
+            for _, destination, saved in staged:
+                restored[destination] = stage_prior_entry(destination, saved)
+            for temporary, destination, saved in staged:
+                os.replace(temporary, destination)
+                replaced.append(destination)
+                if saved[0] == "absent":
+                    tracking_lines.append(os.path.relpath(destination, self.prefix_dir))
+            if tracking_lines and tracked_files is not None:
+                tracked_files.write("".join(line + "\n" for line in tracking_lines))
+        except BaseException:
+            for destination in reversed(replaced):
+                restore_entry(destination, restored.pop(destination))
+            raise
+        finally:
+            for temporary, _, _ in staged:
+                remove_entry(temporary)
+            for staged_prior in restored.values():
+                remove_entry(staged_prior)
+
     def setup_prefix(self):
         with self.prefix_lock:
             if file_exists(self.version_file, follow_symlinks=True):
@@ -1118,6 +1280,8 @@ class CompatData:
             self.create_fonts_symlinks()
 
             with open(self.tracked_files_file, "a") as tracked_files:
+                self.copy_native_text_entry(tracked_files)
+
                 #copy steam files into place
                 makedirs(self.prefix_dir + self.steam_in_pfx_dir)
                 filestocopy = [("steamclient.dll", "steamclient.dll"),

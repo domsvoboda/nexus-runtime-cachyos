@@ -11,6 +11,7 @@ import {noticeModuleInventory,verifySourceNotices,stageSourceNotices} from './so
 import {moduleCapabilities} from './module-capabilities.mjs';
 import {buildPackageRegistration} from './package-registration.mjs';
 import {verifyRuntimeDependencies} from './runtime-dependency-sources.mjs';
+import {stageNativeTextEntry} from './native-text-entry.mjs';
 import {stagePortableGlib} from './portable-glib.mjs';
 import {stagePortableLibva} from './portable-libva.mjs';
 import {verifyRuntimePayload} from './runtime-payload-contract.mjs';
@@ -52,6 +53,11 @@ for(const name of prefixComponents){
   const dest=path.join(files,'share',target.prefix,'drive_c/windows/system32',name);
   const temporary=dest+'.nexus-runtime';await fs.writeFile(temporary,bytes,{flag:'wx'});await fs.rename(temporary,dest);
 }
+const nativeTextEntry=await stageNativeTextEntry(files,target);
+if(nativeTextEntry){
+  components['nexus-text-entry.py']=nativeTextEntry.sha256;
+  components['nexus-text-entry-host.exe']=nativeTextEntry.bridgeSha256[target.primaryPe];
+}
 // Keep portable media separate from the SDK-built Wine. Existing libraries are
 // never silently replaced by the auxiliary bundle.
 for(const [triplet,architecture]of Object.entries(media.architectures)){
@@ -74,7 +80,7 @@ if(inputs.xml2Source){
  await verifyXml2Source(work,inputs.xml2Source,path.join(wine,'dlls/xgameruntime/cmake/xml2.lock.json'));
  await fs.copyFile(path.join(work,xml2Directory,'COPYING'),path.join(notices,'XGR-XML2-COPYING'),fs.constants.COPYFILE_EXCL);
 }
-const metadata={schema:1,status:'experimental',description:inputs.variant?'Experimental Nexus runtime integrating pinned CachyOS Proton sources.':'Independent Nexus runtime built from pinned official Proton Experimental sources.',baseProtonCommit:inputs.upstream.proton,patchState:graph.proton,sourceLockSha256:lockHash,requiresBackendVersion:proton.requiresBackendVersion,components,runtimeCompatibility:auxiliary.compatibility,features:['cloud-saves-pr28','xodus-tcp-bridge-v1','package-locale','xuser-contract-v1','xuser-windows-account-metadata-v1','wine-winhttp-http2-v1','nghttp2-v1','winrt-json-v1','xasync-provider-contract-v1','xtaskqueue-lifecycle-v1','playfab-package-save-folder-v1','xstore-entitlements-v1','xstore-durable-license-v1','xstore-related-discovery-v1','xpackage-content-v1','xstore-package-license-v1','hlsl-state-keywords-v1','appmodel-package-identity-v1','appstate-registration-v1','appconstrained-registration-v1','xtaskqueue-repeat-termination-v1','xgame-relaunch-current-user-v1','dxvk-constant-compare-v1'].filter(feature=>target.primaryPe==='x86_64'||feature!=='hlsl-state-keywords-v1')};
+const metadata={schema:1,...(nativeTextEntry?{nativeTextEntry}:{}),status:'experimental',description:inputs.variant?'Experimental Nexus runtime integrating pinned CachyOS Proton sources.':'Independent Nexus runtime built from pinned official Proton Experimental sources.',baseProtonCommit:inputs.upstream.proton,patchState:graph.proton,sourceLockSha256:lockHash,requiresBackendVersion:proton.requiresBackendVersion,components,runtimeCompatibility:auxiliary.compatibility,features:['cloud-saves-pr28','xodus-tcp-bridge-v1','package-locale','xuser-contract-v1','xuser-windows-account-metadata-v1','wine-winhttp-http2-v1','nghttp2-v1','winrt-json-v1','xasync-provider-contract-v1','xtaskqueue-lifecycle-v1','playfab-package-save-folder-v1','xstore-entitlements-v1','xstore-durable-license-v1','xstore-related-discovery-v1','xpackage-content-v1','xstore-package-license-v1','hlsl-state-keywords-v1','appmodel-package-identity-v1','appstate-registration-v1','appconstrained-registration-v1','xtaskqueue-repeat-termination-v1','xgame-relaunch-current-user-v1','dxvk-constant-compare-v1'].filter(feature=>target.primaryPe==='x86_64'||feature!=='hlsl-state-keywords-v1')};
 metadata.sourceGraph=graph;
 if(inputs.variant)metadata.variant=inputs.variant;
 metadata.packageRegistration={schema:1,sha256:registrationSha256,provider:'WineVerifiedXvd-v1'};
